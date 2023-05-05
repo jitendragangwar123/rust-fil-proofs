@@ -48,6 +48,7 @@ pub const PUBLISHED_SECTOR_SIZES: [u64; 10] = [
 ];
 
 /// Returns the minimum number of challenges used for a certain sector size.
+#[cfg_attr(feature = "tooling", visibility::make(pub))]
 pub(crate) const fn get_porep_interactive_minimum_challenges(sector_size: u64) -> usize {
     match sector_size {
         SECTOR_SIZE_2_KIB | SECTOR_SIZE_4_KIB | SECTOR_SIZE_16_KIB | SECTOR_SIZE_32_KIB

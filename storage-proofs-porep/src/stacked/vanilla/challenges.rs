@@ -209,6 +209,7 @@ pub mod synthetic {
     pub const SYNTHETIC_POREP_VANILLA_PROOFS_EXT: &str = "dat";
 
     // Default synthetic challenge count for production sector sizes.
+    #[cfg_attr(feature = "tooling", visibility::make(pub))]
     const DEFAULT_SYNTH_CHALLENGE_COUNT: usize = 1 << 18;
     const SYNTH_CHALLENGE_SIZE: usize = 32;
     const SYNTH_INDEX_SIZE: usize = 4;

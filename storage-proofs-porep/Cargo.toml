@@ -42,6 +42,7 @@ blstrs = "0.7.0"
 chacha20 = "0.9.0"
 blake2b_simd = "1.0.0"
 glob = "0.3.0"
+visibility = "0.1.0"
 
 [build-dependencies]
 rustversion = "1.0"
@@ -65,6 +66,9 @@ cuda = ["storage-proofs-core/cuda", "filecoin-hashers/cuda", "neptune/cuda", "be
 opencl = ["storage-proofs-core/opencl", "filecoin-hashers/opencl", "neptune/opencl", "bellperson/opencl"]
 isolated-testing = []
 multicore-sdr = ["hwloc"]
+# This feature is for things like changing the visibility of functions/modules for tooling purpose.
+# This way functionality is accessible for those cases, while not being part of the public API.
+tooling = []
 
 [[bench]]
 name = "encode"
