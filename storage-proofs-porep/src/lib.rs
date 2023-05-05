@@ -11,7 +11,7 @@ use storage_proofs_core::{error::Result, merkle::BinaryMerkleTree, proof::ProofS
 
 pub mod stacked;
 
-mod encode;
+pub mod encode;
 
 pub const MAX_LEGACY_POREP_REGISTERED_PROOF_ID: u64 = 4;
 

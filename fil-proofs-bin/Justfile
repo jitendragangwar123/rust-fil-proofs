@@ -1,0 +1,85 @@
+run:
+    fallocate --length 2048 /tmp/unsealed
+    mkdir /tmp/filbin
+    echo '{"input_path": "/tmp/unsealed", "output_dir": "/tmp/filbin", "sector_size": 2048}'|RUST_LOG=trace cargo run --bin tree-d
+    echo '{"num_layers": 3, "output_dir": "/tmp/filbin", "porep_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff", "replica_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff", "sector_size": 2048}'|RUST_LOG=trace cargo run --bin sdr
+    # Not needed for CC sectors, the encoding there is just a no-op with the sector key. Instead we just copy the file
+    #echo '{"input_path": "/tmp/unsealed", "replica_path": "/tmp/sealed", "sector_key_path": "/tmp/filbin/sc-02-data-layer-3.dat"}'|RUST_LOG=trace cargo run --bin encode_replica
+    cp /tmp/filbin/sc-02-data-layer-3.dat /tmp/sealed
+    echo '{"comm_d": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff", "num_layers": 3, "output_dir": "/tmp/filbin", "sector_size": 2048, "replica_path": "/tmp/sealed"}'|RUST_LOG=trace cargo run --bin pc2
+
+pc1:
+    fallocate --length 2048 /tmp/unsealed
+    mkdir /tmp/filbin
+    echo '{"input_path": "/tmp/unsealed", "output_dir": "/tmp/filbin", "sector_size": 2048}'|RUST_LOG=trace cargo run --bin tree-d
+    echo '{"num_layers": 2, "output_dir": "/tmp/filbin", "porep_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff", "replica_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff", "sector_size": 2048}'|RUST_LOG=trace cargo run --bin sdr
+    # Not needed for CC sectors, the encoding there is just a no-op with the sector key. Instead we just copy the file
+    #echo '{"input_path": "/tmp/unsealed", "replica_path": "/tmp/sealed", "sector_key_path": "/tmp/filbin/sc-02-data-layer-2.dat"}'|RUST_LOG=trace cargo run --bin encode_replica
+    cp /tmp/filbin/sc-02-data-layer-2.dat /tmp/sealed
+
+# The PC2 in a single binary
+pc2_single:
+    echo '{"comm_d": "0xfc7e928296e516faade986b28f92d44a4f24b935485223376a799027bc18f833", "num_layers": 2, "output_dir": "/tmp/filbin", "sector_size": 2048, "replica_path": "/tmp/sealed"}'|RUST_LOG=trace cargo run --bin pc2
+
+# The PC2 in several pieces
+pc2:
+    echo '{"num_layers": 2, "output_dir": "/tmp/filbin", "replica_path": "/tmp/sealed", "sector_size": 2048}'|RUST_LOG=trace cargo run --bin tree-r-last
+    echo '{"num_layers": 2, "output_dir": "/tmp/filbin", "sector_size": 2048}'|RUST_LOG=trace cargo run --bin tree-c
+    echo '{"comm_c": "0x1d107fbccf91f682aced9b9b259a7f9928578417cfb06c60562a002fcc34a00b", "comm_r_last": "0x911145e3ffe6484689db1a4591dc341011063e1b563bc9512b0a97ac1ed02c20"}'|RUST_LOG=trace cargo run --bin comm-r
+
+
+pc12_16kib:
+    fallocate --length 16384 /tmp/unsealed_16kib
+    mkdir /tmp/filbin_16kib
+    # PC1
+    echo '{"input_path": "/tmp/unsealed", "output_dir": "/tmp/filbin_16kib", "sector_size": 16384}'|RUST_LOG=trace cargo run --bin tree-d
+    echo '{"num_layers": 2, "output_dir": "/tmp/filbin_16kib", "porep_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff", "replica_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff", "sector_size": 16384}'|RUST_LOG=trace cargo run --bin sdr
+    cp /tmp/filbin_16k/sc-02-data-layer-2.dat /tmp/sealed_16_kib
+    # PC2
+    echo '{"num_layers": 2, "output_dir": "/tmp/filbin_16kib", "replica_path": "/tmp/sealed_16kib", "sector_size": 16384}'|RUST_LOG=trace cargo run --bin tree-r-last
+    echo '{"num_layers": 2, "output_dir": "/tmp/filbin_16kib", "sector_size": 2048}'|RUST_LOG=trace cargo run --bin tree-c
+    echo '{"comm_c": "0x1d107fbccf91f682aced9b9b259a7f9928578417cfb06c60562a002fcc34a00b", "comm_r_last": "0x911145e3ffe6484689db1a4591dc341011063e1b563bc9512b0a97ac1ed02c20"}'|RUST_LOG=trace cargo run --bin comm-r
+
+
+output_dir := "/tmp/filbin_1gib"
+
+pc1_cc_1gib:
+    mkdir {{output_dir}}
+    echo '{"num_layers": 2, "output_dir": "{{output_dir}}", "porep_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff", "replica_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff", "sector_size": 1073741824}'|RUST_LOG=trace FIL_PROOFS_USE_MULTICORE_SDR=1 cargo run --bin sdr
+
+
+snap:
+    # The data that should be snapped into an existing sector
+    fallocate --length 2048 /tmp/unsealed_2kib
+    fallocate --length 2048 /tmp/old_replica_2kib
+    mkdir /tmp/filbin_snap2kib
+    echo '{"input_path": "/tmp/unsealed_2kib", "output_dir": "/tmp/filbin_snap2kib", "sector_size": 2048}'|RUST_LOG=trace cargo run --bin tree-d
+    echo '{"comm_d": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff", "comm_r": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff", "input_path": "/tmp/unsealed_2kib", "replica_path": "/tmp/snapped_2kib", "sector_key_path": "/tmp/old_replica_2kib", "sector_size": 2048}'|RUST_LOG=trace cargo run --bin update-encode
+
+testing_snap_16kib:
+    fallocate --length 16384 /tmp/unsealed_16kib
+    mkdir -p /tmp/filbin_16kib
+    echo '{"num_layers": 2, "output_dir": "/tmp/filbin_16kib", "porep_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff", "replica_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff", "sector_size": 16384}'|RUST_LOG=trace cargo run --bin sdr
+    # You woulnd't use the first layer as input data, this is just for testing so that I have a file with properly encoded field elements.
+    echo '{"comm_d": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "comm_r": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "input_path": "/tmp/unsealed_16kib", "length": 16384, "offset": 0, "output_path": "/tmp/snapped_16kib", "sector_key_path": "/tmp/filbin_16kib/sc-02-data-layer-2.dat", "sector_size": 16384}'|RUST_LOG=trace cargo run --bin update-encode -- --nocapture
+    echo '{"comm_d": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "comm_r": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "input_path": "/tmp/snapped_16kib", "length": 16384, "offset": 0, "output_path": "/tmp/decoded_16kib", "sector_key_path": "/tmp/filbin_16kib/sc-02-data-layer-2.dat", "sector_size": 16384}'|RUST_LOG=trace cargo run --bin update-decode -- --nocapture
+    b2sum /tmp/unsealed_16kib /tmp/decoded_16kib
+
+testing_update_encode_32gib:
+    echo '{"comm_d": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "comm_r": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "input_path": "/storage/proofs-cache/vmx/window-post-32gib-dir/sc-02-data-layer-1.dat", "length": 16384, "offset": 0, "replica_path": "/home/vmx/pc2/snapped_32gib", "sector_key_path": "/storage/proofs-cache/vmx/window-post-32gib-dir/sc-02-data-layer-11.dat", "sector_size": 34359738368}'|RUST_LOG=trace /usr/bin/time -v cargo run --release --bin update-encode -- --nocapture
+
+tree_r_last_32gib:
+    echo '{"output_dir": "/storage/proofs-cache/vmx/tree-r-last", "replica_path": "/storage/proofs-cache/vmx/window-post-32gib-dir/sealed-file", "sector_size": 34359738368}'|RUST_LOG=trace FIL_PROOFS_USE_GPU_COLUMN_BUILDER=1 FIL_PROOFS_USE_GPU_TREE_BUILDER=1 /usr/bin/time -v cargo run --release --bin tree-r-last -- --nocapture
+
+tree_r_last16kib:
+   echo '{"output_dir": "/tmp/rfp-tree-r-last", "replica_path": "/tmp/window-post-16kib-dir/sealed-file", "sector_size": 16384}'|RUST_LOG=trace /usr/bin/time -v cargo run --bin tree-r-last -- --nocapture
+
+encode_replica_16kib:
+    echo '{"input_path": "/tmp/window-post-16KiB-dir/staged-file", "replica_path": "/tmp/sealed", "sector_key_path": "/tmp/window-post-16KiB-dir/sc-02-data-layer-2.dat"}'|RUST_LOG=trace cargo run --bin encode-replica
+    b2sum /tmp/sealed /tmp/window-post-16KiB-dir/sealed-file
+
+challenges_2kib:
+    echo '{"replica_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "sector_size": 2048, "seed": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "num_challenges": 2, "num_partitions": 1}'|RUST_LOG=trace cargo run --bin challenges
+
+replica_id:
+    echo '{"comm_d": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "porep_seed": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "prover_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "sector_id": 12345678, "ticket": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00"}'|RUST_LOG=trace cargo run --bin replica-id
