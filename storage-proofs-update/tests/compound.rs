@@ -16,9 +16,9 @@ use storage_proofs_core::{
 };
 use storage_proofs_update::{
     constants::{
-        hs, partition_count, validate_tree_r_shape, TreeD, TreeDArity, TreeDDomain, TreeRBaseTree,
-        TreeRDomain, TreeRHasher, SECTOR_SIZE_16_KIB, SECTOR_SIZE_1_KIB, SECTOR_SIZE_2_KIB,
-        SECTOR_SIZE_32_KIB, SECTOR_SIZE_4_KIB, SECTOR_SIZE_8_KIB,
+        circuit_hs, partition_count, validate_tree_r_shape, TreeD, TreeDArity, TreeDDomain,
+        TreeRBaseTree, TreeRDomain, TreeRHasher, SECTOR_SIZE_16_KIB, SECTOR_SIZE_1_KIB,
+        SECTOR_SIZE_2_KIB, SECTOR_SIZE_32_KIB, SECTOR_SIZE_4_KIB, SECTOR_SIZE_8_KIB,
     },
     phi, EmptySectorUpdateCompound, PrivateInputs, PublicInputs, SetupParams,
 };
@@ -48,7 +48,7 @@ where
     let tree_r_base_tree_nodes =
         get_merkle_tree_len(tree_r_leafs_per_base_tree, base_arity).unwrap();
 
-    let h = hs(sector_nodes)[HS_INDEX];
+    let h = circuit_hs(sector_nodes)[HS_INDEX];
 
     let mut rng = XorShiftRng::from_seed(TEST_SEED);
     let comm_c = TreeRDomain::random(&mut rng);

@@ -35,8 +35,8 @@ use storage_proofs_porep::stacked::{StackedDrg, TreeRElementData};
 
 use crate::{
     constants::{
-        apex_leaf_count, challenge_count, challenge_count_poseidon, hs, partition_count, TreeD,
-        TreeDArity, TreeDDomain, TreeDHasher, TreeDStore, TreeRDomain, TreeRHasher,
+        apex_leaf_count, challenge_count, challenge_count_poseidon, num_high_bits, partition_count,
+        TreeD, TreeDArity, TreeDDomain, TreeDHasher, TreeDStore, TreeRDomain, TreeRHasher,
         ALLOWED_SECTOR_SIZES, POSEIDON_CONSTANTS_GEN_RANDOMNESS,
     },
     Challenges,
@@ -379,7 +379,10 @@ where
             k < partition_count,
             "partition-index `k` exceeds partition-count for sector-size"
         );
-        ensure!(hs(sector_nodes).contains(&h), "invalid `h` for sector-size");
+        ensure!(
+            num_high_bits(sector_nodes) == h,
+            "invalid `h` for sector-size"
+        );
 
         let PartitionProof {
             comm_c,

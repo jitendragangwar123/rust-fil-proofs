@@ -21,9 +21,9 @@ use storage_proofs_core::{
 
 use crate::{
     constants::{
-        apex_leaf_count, challenge_count, hs, partition_count, validate_tree_r_shape, TreeD,
-        TreeDArity, TreeDDomain, TreeDHasher, TreeRDomain, TreeRHasher,
-        POSEIDON_CONSTANTS_GEN_RANDOMNESS,
+        apex_leaf_count, challenge_count, circuit_hs, h_select, partition_count,
+        validate_tree_r_shape, TreeD, TreeDArity, TreeDDomain, TreeDHasher, TreeRDomain,
+        TreeRHasher, POSEIDON_CONSTANTS_GEN_RANDOMNESS,
     },
     gadgets::{apex_por, gen_challenge_bits, get_challenge_high_bits, label_r_new},
     vanilla, PublicParams,
@@ -58,12 +58,7 @@ impl PublicInputs {
             "partition-index `k` exceeds partition-count for sector-size"
         );
 
-        let hs_index = hs(sector_nodes)
-            .iter()
-            .position(|h_allowed| *h_allowed == h)
-            .expect("invalid `h` for sector-size");
-
-        let h_select = 1u64 << hs_index;
+        let h_select = h_select(sector_nodes, h);
 
         let partition_bit_len = partition_count.trailing_zeros() as usize;
         let k_and_h_select = (k as u64) | (h_select << partition_bit_len);
@@ -373,7 +368,7 @@ where
         } = self;
 
         validate_tree_r_shape::<TreeR>(sector_nodes);
-        let hs = hs(sector_nodes);
+        let hs = circuit_hs(sector_nodes);
         let h_select_bit_len = hs.len();
 
         let partition_path =

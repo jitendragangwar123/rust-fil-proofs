@@ -11,10 +11,6 @@ use storage_proofs_core::{
 };
 use storage_proofs_update::{constants::TreeRDomain, rho};
 
-// Selects a value for `h` via `h = hs[log2(h_select)]`; default to taking `h = hs[2]`.
-#[allow(dead_code)]
-pub const H_SELECT: u64 = 1 << 2;
-
 #[allow(dead_code)]
 pub fn create_tree<Tree: MerkleTreeTrait>(
     labels: &[<<Tree as MerkleTreeTrait>::Hasher as Hasher>::Domain],

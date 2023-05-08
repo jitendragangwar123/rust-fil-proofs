@@ -12,11 +12,12 @@ use rand_xorshift::XorShiftRng;
 use storage_proofs_core::{
     merkle::{MerkleTreeTrait, MerkleTreeWrapper},
     util::default_rows_to_discard,
+    util::NODE_SIZE,
     TEST_SEED,
 };
 use storage_proofs_update::{
     constants::{
-        apex_leaf_count, hs, partition_count, validate_tree_r_shape, TreeD, TreeDDomain,
+        apex_leaf_count, num_high_bits, partition_count, validate_tree_r_shape, TreeD, TreeDDomain,
         TreeRDomain, TreeRHasher, SECTOR_SIZE_16_KIB, SECTOR_SIZE_1_KIB, SECTOR_SIZE_2_KIB,
         SECTOR_SIZE_32_GIB, SECTOR_SIZE_32_KIB, SECTOR_SIZE_4_KIB, SECTOR_SIZE_8_KIB,
     },
@@ -34,9 +35,8 @@ where
 {
     validate_tree_r_shape::<TreeR>(sector_nodes);
 
-    let sector_bytes = sector_nodes << 5;
-    let hs = hs(sector_nodes);
-    let h = hs[common::H_SELECT.trailing_zeros() as usize];
+    let sector_bytes = sector_nodes * NODE_SIZE;
+    let h = num_high_bits(sector_nodes);
 
     let mut rng = XorShiftRng::from_seed(TEST_SEED);
 
