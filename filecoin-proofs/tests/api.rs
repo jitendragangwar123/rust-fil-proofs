@@ -10,27 +10,28 @@ use blstrs::{Bls12, Scalar as Fr};
 use ff::Field;
 use filecoin_hashers::Hasher;
 use filecoin_proofs::{
-    add_piece, aggregate_seal_commit_proofs, clear_cache, clear_layer_data, clear_synthetic_proofs,
-    compute_comm_d, decode_from, decode_from_range, encode_into, fauxrep_aux,
-    generate_empty_sector_update_proof, generate_empty_sector_update_proof_with_vanilla,
-    generate_fallback_sector_challenges, generate_partition_proofs, generate_piece_commitment,
-    generate_single_partition_proof, generate_single_vanilla_proof,
-    generate_single_window_post_with_vanilla, generate_synth_proofs, generate_tree_c,
-    generate_tree_r_last, generate_window_post, generate_window_post_with_vanilla,
+    add_piece, aggregate_empty_sector_update_proofs, aggregate_seal_commit_proofs, clear_cache,
+    clear_layer_data, clear_synthetic_proofs, compute_comm_d, decode_from, decode_from_range,
+    encode_into, fauxrep_aux, generate_empty_sector_update_proof,
+    generate_empty_sector_update_proof_with_vanilla, generate_fallback_sector_challenges,
+    generate_partition_proofs, generate_piece_commitment, generate_single_partition_proof,
+    generate_single_vanilla_proof, generate_single_window_post_with_vanilla, generate_synth_proofs,
+    generate_tree_c, generate_tree_r_last, generate_window_post, generate_window_post_with_vanilla,
     generate_winning_post, generate_winning_post_sector_challenge,
     generate_winning_post_with_vanilla, get_num_partition_for_fallback_post, get_seal_inputs,
     merge_window_post_partition_proofs, remove_encoded_data, seal_commit_phase1,
     seal_commit_phase2, seal_pre_commit_phase1, seal_pre_commit_phase2, unseal_range,
     validate_cache_for_commit, validate_cache_for_precommit_phase2,
-    verify_aggregate_seal_commit_proofs, verify_empty_sector_update_proof, verify_partition_proofs,
-    verify_seal, verify_single_partition_proof, verify_window_post, verify_winning_post,
-    Commitment, DefaultTreeDomain, MerkleTreeTrait, PaddedBytesAmount, PieceInfo, PoRepConfig,
-    PoStConfig, PoStType, PrivateReplicaInfo, ProverId, PublicReplicaInfo, SealCommitOutput,
-    SealPreCommitOutput, SealPreCommitPhase1Output, SectorShape16KiB, SectorShape2KiB,
-    SectorShape32KiB, SectorShape4KiB, SectorUpdateConfig, UnpaddedByteIndex, UnpaddedBytesAmount,
-    SECTOR_SIZE_16_KIB, SECTOR_SIZE_2_KIB, SECTOR_SIZE_32_KIB, SECTOR_SIZE_4_KIB,
-    WINDOW_POST_CHALLENGE_COUNT, WINDOW_POST_SECTOR_COUNT, WINNING_POST_CHALLENGE_COUNT,
-    WINNING_POST_SECTOR_COUNT,
+    verify_aggregate_seal_commit_proofs, verify_aggregate_sector_update_proofs,
+    verify_aggregate_sector_update_proofs, verify_empty_sector_update_proof,
+    verify_partition_proofs, verify_seal, verify_single_partition_proof, verify_window_post,
+    verify_winning_post, Commitment, DefaultTreeDomain, MerkleTreeTrait, PaddedBytesAmount,
+    PieceInfo, PoRepConfig, PoStConfig, PoStType, PrivateReplicaInfo, ProverId, PublicReplicaInfo,
+    SealCommitOutput, SealPreCommitOutput, SealPreCommitPhase1Output, SectorShape16KiB,
+    SectorShape2KiB, SectorShape32KiB, SectorShape4KiB, SectorUpdateConfig,
+    SectorUpdateProofInputs, UnpaddedByteIndex, UnpaddedBytesAmount, SECTOR_SIZE_16_KIB,
+    SECTOR_SIZE_2_KIB, SECTOR_SIZE_32_KIB, SECTOR_SIZE_4_KIB, WINDOW_POST_CHALLENGE_COUNT,
+    WINDOW_POST_SECTOR_COUNT, WINNING_POST_CHALLENGE_COUNT, WINNING_POST_SECTOR_COUNT,
 };
 use fr32::bytes_into_fr;
 use log::info;
@@ -2181,6 +2182,51 @@ fn create_seal_for_upgrade<R: Rng, Tree: 'static + MerkleTreeTrait<Hasher = Tree
         encoded.comm_d_new,
     )?;
     ensure!(valid, "Compound proof failed to verify");
+
+    /***************************************
+     * TEST SNARKPACK/SNAPDEAL HERE
+     ***************************************/
+    let proof_inputs = SectorUpdateProofInputs {
+        comm_r_old: comm_r,
+        comm_r_new: encoded.comm_r_new,
+        comm_d_new: encoded.comm_d_new,
+    };
+
+    let sector_update_proofs = vec![proof.clone(), proof.clone()];
+    let sector_update_inputs = vec![proof_inputs.clone(), proof_inputs.clone()];
+
+    let agg_update_proof = aggregate_empty_sector_update_proofs::<Tree>(
+        &porep_config,
+        &sector_update_proofs,
+        &sector_update_inputs,
+        groth16::aggregate::AggregateVersion::V2,
+    )?;
+
+    let mut combined_sector_update_inputs: Vec<Vec<Fr>> =
+        Vec::with_capacity(sector_update_inputs.len());
+    sector_update_inputs.iter().map(|input| {
+        combined_sector_update_inputs.extend(
+            get_sector_update_inputs::<Tree>(
+                &porep_config,
+                comm_r,
+                encoded.comm_r_new,
+                encoded.comm_d_new,
+            )
+            .expect("failed to get sector update inputs"),
+        );
+    });
+
+    let valid = verify_aggregate_sector_update_proofs::<Tree>(
+        &porep_config,
+        agg_update_proof,
+        &sector_update_inputs,
+        combined_sector_update_inputs,
+        groth16::aggregate::AggregateVersion::V2,
+    )?;
+    ensure!(
+        valid,
+        "aggregate empty sector update proof failed to verify"
+    );
 
     let decoded_sector_file = NamedTempFile::new()?;
     // New replica (new_sealed_sector_file) is currently 0 bytes --
