@@ -21,6 +21,7 @@ use storage_proofs_core::{
     compound_proof::{self, CompoundProof},
     merkle::{get_base_tree_count, MerkleTreeTrait},
     multi_proof::MultiProof,
+    parameter_cache::SRS_MAX_PROOFS_TO_AGGREGATE,
     proof::ProofScheme,
     util::NODE_SIZE,
 };
@@ -64,6 +65,7 @@ impl SectorUpdateProofInputs {
     }
 }
 
+/// FIXME: DUPLICATED??
 /// Given a value, get one suitable for aggregation.
 #[inline]
 fn get_aggregate_target_len(len: usize) -> usize {
@@ -74,6 +76,45 @@ fn get_aggregate_target_len(len: usize) -> usize {
     }
 }
 
+/// FIXME: DUPLICATED??
+/// Given a list of proofs and a target_len, make sure that the proofs list is padded to the target_len size.
+fn pad_proofs_to_target(proofs: &mut Vec<groth16::Proof<Bls12>>, target_len: usize) -> Result<()> {
+    trace!(
+        "pad_proofs_to_target target_len {}, proofs len {}",
+        target_len,
+        proofs.len()
+    );
+    ensure!(
+        target_len >= proofs.len(),
+        "target len must be greater than actual num proofs"
+    );
+    ensure!(
+        proofs.last().is_some(),
+        "invalid last proof for duplication"
+    );
+
+    let last = proofs
+        .last()
+        .expect("invalid last proof for duplication")
+        .clone();
+    let mut padding: Vec<groth16::Proof<Bls12>> = (0..target_len - proofs.len())
+        .map(|_| last.clone())
+        .collect();
+    proofs.append(&mut padding);
+
+    ensure!(
+        proofs.len().next_power_of_two() == proofs.len(),
+        "proof count must be a power of 2 for aggregation"
+    );
+    ensure!(
+        proofs.len() <= SRS_MAX_PROOFS_TO_AGGREGATE,
+        "proof count for aggregation is larger than the max supported value"
+    );
+
+    Ok(())
+}
+
+/// FIXME: DUPLICATED??
 /// Given a list of public inputs and a target_len, make sure that the inputs list is padded to the target_len size.
 fn pad_inputs_to_target(
     sector_update_inputs: &[Vec<Fr>],
@@ -881,7 +922,7 @@ pub fn aggregate_empty_sector_update_proofs<
     let partitions = usize::from(porep_config.partitions);
     let verifying_key = get_empty_sector_update_verifying_key::<Tree>(porep_config)?;
 
-    let proofs: Vec<_> = proofs
+    let mut proofs: Vec<_> = proofs
         .iter()
         .try_fold(Vec::new(), |mut acc, proof| -> Result<_> {
             acc.extend(
@@ -896,6 +937,19 @@ pub fn aggregate_empty_sector_update_proofs<
         sector_update_inputs.len(),
         proofs.len(),
     );
+
+    let target_proofs_len = get_aggregate_target_len(proofs.len());
+    ensure!(
+        target_proofs_len > 1,
+        "cannot aggregate less than two proofs"
+    );
+    trace!(
+        "aggregate_seal_commit_proofs will pad proofs to target_len {}",
+        target_proofs_len
+    );
+
+    // If we're not at the pow2 target, duplicate the last proof until we are.
+    pad_proofs_to_target(&mut proofs, target_proofs_len)?;
 
     // Hash all of the commitments into an ordered digest for the aggregate proof method.
     let hashed_commitments: [u8; 32] = {

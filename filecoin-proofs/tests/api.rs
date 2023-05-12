@@ -2192,8 +2192,12 @@ fn create_seal_for_upgrade<R: Rng, Tree: 'static + MerkleTreeTrait<Hasher = Tree
         comm_d_new: encoded.comm_d_new,
     };
 
-    let sector_update_proofs = vec![proof.clone(), proof.clone()];
-    let sector_update_inputs = vec![proof_inputs.clone(), proof_inputs.clone()];
+    let sector_update_proofs = vec![proof.clone(), proof.clone(), proof.clone()];
+    let sector_update_inputs = vec![
+        proof_inputs.clone(),
+        proof_inputs.clone(),
+        proof_inputs.clone(),
+    ];
 
     let agg_update_proof = aggregate_empty_sector_update_proofs::<Tree>(
         &porep_config,
