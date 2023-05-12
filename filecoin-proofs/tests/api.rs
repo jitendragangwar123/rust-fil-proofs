@@ -2202,19 +2202,18 @@ fn create_seal_for_upgrade<R: Rng, Tree: 'static + MerkleTreeTrait<Hasher = Tree
         groth16::aggregate::AggregateVersion::V2,
     )?;
 
-    let mut combined_sector_update_inputs: Vec<Vec<Fr>> =
-        Vec::with_capacity(sector_update_inputs.len());
-    sector_update_inputs.iter().map(|input| {
-        combined_sector_update_inputs.extend(
+    let combined_sector_update_inputs: Vec<Vec<Fr>> = sector_update_inputs
+        .iter()
+        .flat_map(|input| {
             get_sector_update_inputs::<Tree>(
                 &porep_config,
-                comm_r,
-                encoded.comm_r_new,
-                encoded.comm_d_new,
+                input.comm_r_old,
+                input.comm_r_new,
+                input.comm_d_new,
             )
-            .expect("failed to get sector update inputs"),
-        );
-    });
+            .expect("failed to get sector update inputs")
+        })
+        .collect();
 
     let valid = verify_aggregate_sector_update_proofs::<Tree>(
         &porep_config,
