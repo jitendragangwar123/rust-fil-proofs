@@ -17,18 +17,20 @@ use storage_proofs_core::{
     compound_proof::{self, CompoundProof},
     drgraph::Graph,
     measurements::{measure_op, Operation},
-    merkle::{create_base_merkle_tree, BinaryMerkleTree, MerkleTreeTrait},
+    merkle::{create_base_merkle_tree, get_base_tree_count, BinaryMerkleTree, MerkleTreeTrait},
     multi_proof::MultiProof,
     parameter_cache::SRS_MAX_PROOFS_TO_AGGREGATE,
     proof::ProofScheme,
     sector::SectorId,
-    util::default_rows_to_discard,
+    util::{default_rows_to_discard, NODE_SIZE},
     Data,
 };
 use storage_proofs_porep::stacked::{
     self, generate_replica_id, ChallengeRequirements, StackedCompound, StackedDrg, Tau,
     TemporaryAux, TemporaryAuxCache,
 };
+use storage_proofs_update::vanilla::prepare_tree_r_data;
+use typenum::Unsigned;
 
 use crate::POREP_MINIMUM_CHALLENGES;
 use crate::{
@@ -1129,4 +1131,57 @@ pub fn verify_batch_seal<Tree: 'static + MerkleTreeTrait>(
 
     info!("verify_batch_seal:finish");
     result
+}
+
+/// Generate the merkle tree on top of the replica (TreeRLast).
+///
+/// The generated trees are stored in `output_dir`, usually the cache directory. The `replica_path`
+/// point to the replica where the tree should be built upon. The `sector_size` is in bytes.
+pub fn generate_tree_r_last<O, R, TreeR: 'static + MerkleTreeTrait>(
+    sector_size: u64,
+    replica_path: R,
+    output_dir: O,
+) -> Result<<TreeR::Hasher as Hasher>::Domain>
+where
+    O: AsRef<Path>,
+    R: AsRef<Path>,
+{
+    let leaf_count = sector_size as usize / NODE_SIZE;
+    let tree_count = get_base_tree_count::<TreeR>();
+    let nodes_count = leaf_count / tree_count;
+
+    let rows_to_discard = default_rows_to_discard(nodes_count, TreeR::Arity::to_usize());
+    let size = get_base_tree_size::<TreeR>(SectorSize(sector_size))?;
+    let tree_r_last_config = StoreConfig {
+        path: PathBuf::from(output_dir.as_ref()),
+        id: CacheKey::CommRLastTree.to_string(),
+        size: Some(size),
+        // A default 'rows_to_discard' value will be chosen for tree_r_last, unless the user
+        // overrides this value via the environment setting (FIL_PROOFS_ROWS_TO_DISCARD). If
+        // this value is specified, no checking is done on it and it may result in a broken
+        // configuration. *Use with caution*. It must be noted that if/when this unchecked
+        // value is passed through merkle_light, merkle_light now does a check that does not
+        // allow us to discard more rows than is possible to discard.
+        rows_to_discard,
+    };
+
+    let base_tree_size = get_base_tree_size::<DefaultBinaryTree>(sector_size.into())?;
+    let base_tree_leafs = get_base_tree_leafs::<DefaultBinaryTree>(base_tree_size)?;
+    let replica = DiskStore::new_from_disk_with_path(base_tree_leafs, &replica_path)?;
+
+    // This argument is currently unused by this invocation, but required for the API.
+    let mut unused_data = Data::empty();
+
+    let tree_r_last = StackedDrg::<TreeR, DefaultPieceHasher>::generate_tree_r_last::<TreeR::Arity>(
+        &mut unused_data,
+        nodes_count,
+        tree_count,
+        tree_r_last_config,
+        PathBuf::from(replica_path.as_ref()),
+        &replica,
+        // By default, the replica file is manipulated, use the prepare function from the empty
+        // sector update, that only prepares the data for use on the GPU if needed.
+        Some(prepare_tree_r_data),
+    )?;
+    Ok(tree_r_last.root())
 }

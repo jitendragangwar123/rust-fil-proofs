@@ -14,8 +14,8 @@ use filecoin_proofs::{
     decode_from_range, encode_into, fauxrep_aux, generate_empty_sector_update_proof,
     generate_empty_sector_update_proof_with_vanilla, generate_fallback_sector_challenges,
     generate_partition_proofs, generate_piece_commitment, generate_single_partition_proof,
-    generate_single_vanilla_proof, generate_single_window_post_with_vanilla, generate_window_post,
-    generate_window_post_with_vanilla, generate_winning_post,
+    generate_single_vanilla_proof, generate_single_window_post_with_vanilla, generate_tree_r_last,
+    generate_window_post, generate_window_post_with_vanilla, generate_winning_post,
     generate_winning_post_sector_challenge, generate_winning_post_with_vanilla,
     get_num_partition_for_fallback_post, get_seal_inputs, merge_window_post_partition_proofs,
     remove_encoded_data, seal_commit_phase1, seal_commit_phase2, seal_pre_commit_phase1,
@@ -34,10 +34,12 @@ use filecoin_proofs::{
 use fr32::bytes_into_fr;
 use log::info;
 use memmap2::MmapOptions;
+use merkletree::store::StoreConfig;
 use rand::{Rng, SeedableRng};
 use rand_xorshift::XorShiftRng;
 use storage_proofs_core::{
-    api_version::ApiVersion, is_legacy_porep_id, sector::SectorId, util::NODE_SIZE,
+    api_version::ApiVersion, cache_key::CacheKey, is_legacy_porep_id, merkle::get_base_tree_count,
+    sector::SectorId, util::NODE_SIZE,
 };
 use storage_proofs_update::constants::TreeRHasher;
 use tempfile::{tempdir, NamedTempFile, TempDir};
@@ -1686,6 +1688,27 @@ fn proof_and_unseal<Tree: 'static + MerkleTreeTrait>(
     )
 }
 
+/// Check if creating only the tree_r_last generates the same output as the full pre commit phase 2
+/// process.
+fn test_generate_tree_r_last<Tree: 'static + MerkleTreeTrait>(
+    sector_size: u64,
+    cache_dir: &TempDir,
+    sealed_sector_file: &NamedTempFile,
+) -> Result<()> {
+    let tree_r_last_cache_dir = tempdir().expect("failed to create temp dir");
+    generate_tree_r_last::<_, _, Tree>(sector_size, &sealed_sector_file, &tree_r_last_cache_dir)?;
+    let cache_key = if get_base_tree_count::<Tree>() == 1 {
+        CacheKey::CommRLastTree.to_string()
+    } else {
+        // Only checking the first tree file is good enough.
+        format!("{}-{}", CacheKey::CommRLastTree, 0)
+    };
+    let cache_dir_tree_r_last_path = StoreConfig::data_path(cache_dir.path(), &cache_key);
+    let tree_r_last_path = StoreConfig::data_path(tree_r_last_cache_dir.path(), &cache_key);
+    compare_elements(&tree_r_last_path, &cache_dir_tree_r_last_path)?;
+    Ok(())
+}
+
 fn create_seal<R: Rng, Tree: 'static + MerkleTreeTrait>(
     rng: &mut R,
     sector_size: u64,
@@ -1721,6 +1744,8 @@ fn create_seal<R: Rng, Tree: 'static + MerkleTreeTrait>(
         cache_dir.path(),
         sealed_sector_file.path(),
     )?;
+
+    test_generate_tree_r_last::<Tree>(sector_size, &cache_dir, &sealed_sector_file)?;
 
     let comm_r = pre_commit_output.comm_r;
 
