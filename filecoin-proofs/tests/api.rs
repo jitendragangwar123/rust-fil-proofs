@@ -34,7 +34,7 @@ use filecoin_proofs::{
     WINDOW_POST_SECTOR_COUNT, WINNING_POST_CHALLENGE_COUNT, WINNING_POST_SECTOR_COUNT,
 };
 use fr32::bytes_into_fr;
-use log::info;
+use log::{info, trace};
 use memmap2::MmapOptions;
 use merkletree::store::StoreConfig;
 use rand::{random, Rng, SeedableRng};

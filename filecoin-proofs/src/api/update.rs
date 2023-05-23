@@ -874,7 +874,7 @@ pub fn get_sector_update_inputs<Tree: 'static + MerkleTreeTrait<Hasher = TreeRHa
         comm_r_old: comm_r_old_safe,
         comm_d_new: comm_d_new_safe,
         comm_r_new: comm_r_new_safe,
-        h: usize::from(config.h_select),
+        h: config.h,
     };
     let setup_params_compound = compound_proof::SetupParams {
         vanilla_params: SetupParams {
