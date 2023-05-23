@@ -62,13 +62,14 @@ fn bench_seal_inputs(c: &mut Criterion) {
 fn bench_sector_update_inputs(c: &mut Criterion) {
     let params = vec![1, 16, 64, 256, 512, 1024];
 
-    let porep_id_v1_1: u64 = 5; // This is a RegisteredSealProof value
+    let porep_id_v1_1: u64 = 8; // This is a RegisteredSealProof value
 
     let mut porep_id = [0u8; 32];
     porep_id[..8].copy_from_slice(&porep_id_v1_1.to_le_bytes());
     assert!(!is_legacy_porep_id(porep_id));
 
-    let config = PoRepConfig::new_groth16(SECTOR_SIZE_2_KIB, porep_id, ApiVersion::V1_2_0);
+    //let config = PoRepConfig::new_groth16(SECTOR_SIZE_2_KIB, porep_id, ApiVersion::V1_2_0);
+    let config = PoRepConfig::new_groth16(SECTOR_SIZE_32_GIB, porep_id, ApiVersion::V1_2_0);
 
     let comm_r_old = [5u8; 32];
     let comm_r_new = [6u8; 32];
@@ -80,7 +81,7 @@ fn bench_sector_update_inputs(c: &mut Criterion) {
             .bench_function(format!("get-sector-update-inputs-{}", iterations), |b| {
                 b.iter(|| {
                     for _ in 0..iterations {
-                        get_sector_update_inputs::<SectorShape2KiB>(
+                        get_sector_update_inputs::<SectorShape32GiB>(
                             &config, comm_r_old, comm_r_new, comm_d_new,
                         )
                         .expect("get sector update inputs failed");
@@ -163,9 +164,9 @@ fn bench_stacked_srs_verifier_key(c: &mut Criterion) {
 
 criterion_group!(
     benches,
-    bench_seal_inputs,
+    //    bench_seal_inputs,
     bench_sector_update_inputs,
-    bench_stacked_srs_key,
-    bench_stacked_srs_verifier_key,
+    //    bench_stacked_srs_key,
+    //    bench_stacked_srs_verifier_key,
 );
 criterion_main!(benches);
