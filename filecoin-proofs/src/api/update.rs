@@ -927,7 +927,8 @@ pub fn aggregate_empty_sector_update_proofs<
         target_proofs_len
     );
 
-    let partitions = usize::from(porep_config.partitions);
+    let config = SectorUpdateConfig::from_porep_config(porep_config);
+    let partitions = usize::from(config.update_partitions);
     let verifying_key = get_empty_sector_update_verifying_key::<Tree>(porep_config)?;
 
     let mut proofs: Vec<_> = proofs
