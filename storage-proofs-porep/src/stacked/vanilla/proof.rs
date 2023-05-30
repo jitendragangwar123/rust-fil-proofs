@@ -100,13 +100,13 @@ impl<'a, Tree: 'static + MerkleTreeTrait, G: 'static + Hasher> StackedDrg<'a, Tr
         pub_inputs: &PublicInputs<<Tree::Hasher as Hasher>::Domain, <G as Hasher>::Domain>,
         p_aux: &PersistentAux<<Tree::Hasher as Hasher>::Domain>,
         t_aux: &TemporaryAuxCache<Tree, G>,
-        layer_challenges: &LayerChallenges,
+        challenges: &LayerChallenges,
         layers: usize,
         partition_count: usize,
     ) -> Result<Vec<Vec<Proof<Tree, G>>>> {
         assert!(layers > 0);
 
-        if !layer_challenges.use_synthetic {
+        if !challenges.use_synthetic {
             // This needs to be relaxed now since the layers may not exist in the synth porep case
             assert_eq!(t_aux.labels.len(), layers);
         }
@@ -125,12 +125,13 @@ impl<'a, Tree: 'static + MerkleTreeTrait, G: 'static + Hasher> StackedDrg<'a, Tr
 
         // If synthetic vanilla proofs are stored on disk, read and return the proofs corresponding
         // to the porep challlenge set.
-        let read_synth_proofs = layer_challenges.use_synthetic && pub_inputs.seed.is_some();
+        let read_synth_proofs = challenges.use_synthetic && pub_inputs.seed.is_some();
         if read_synth_proofs {
             let read_res = Self::read_porep_proofs_from_synth(
                 graph_size,
                 pub_inputs,
-                layer_challenges,
+                challenges,
+                layers,
                 t_aux,
                 partition_count,
             );
@@ -156,7 +157,7 @@ impl<'a, Tree: 'static + MerkleTreeTrait, G: 'static + Hasher> StackedDrg<'a, Tr
         // If generating vanilla proofs for the synthetic challenge set, generate those proofs in a
         // single partition (otherwise we must ensure tha the synthetic challenge count is divisible
         // by the porep partition count).
-        let gen_synth_proofs = layer_challenges.use_synthetic && pub_inputs.seed.is_none();
+        let gen_synth_proofs = challenges.use_synthetic && pub_inputs.seed.is_none();
         if gen_synth_proofs {
             info!("generating synthetic vanilla proofs in a single partition");
         }
@@ -200,7 +201,7 @@ impl<'a, Tree: 'static + MerkleTreeTrait, G: 'static + Hasher> StackedDrg<'a, Tr
                 trace!("proving partition {}/{}", k + 1, partition_count);
 
                 // Derive the set of challenges we are proving over.
-                let challenges = pub_inputs.challenges(layer_challenges, graph_size, Some(k));
+                let challenges = pub_inputs.challenges(challenges, graph_size, Some(k));
 
                 THREAD_POOL.scoped(|scope| {
                     // Stacked commitment specifics
@@ -364,7 +365,7 @@ impl<'a, Tree: 'static + MerkleTreeTrait, G: 'static + Hasher> StackedDrg<'a, Tr
                 "synthetic proofs should be generated in a single partition",
             );
             let synth_proofs = &vanilla_proofs[0];
-            Self::write_synth_proofs(synth_proofs, pub_inputs, graph, layer_challenges, t_aux)?;
+            Self::write_synth_proofs(synth_proofs, pub_inputs, graph, challenges, layers, t_aux)?;
             return Ok(vec![vec![]; partition_count]);
         }
 
@@ -375,7 +376,8 @@ impl<'a, Tree: 'static + MerkleTreeTrait, G: 'static + Hasher> StackedDrg<'a, Tr
         synth_proofs: &[Proof<Tree, G>],
         pub_inputs: &PublicInputs<<Tree::Hasher as Hasher>::Domain, <G as Hasher>::Domain>,
         graph: &StackedBucketGraph<Tree::Hasher>,
-        layer_challenges: &LayerChallenges,
+        challenges: &LayerChallenges,
+        layers: usize,
         t_aux: &TemporaryAuxCache<Tree, G>,
     ) -> Result<()> {
         use crate::stacked::vanilla::SynthChallenges;
@@ -389,7 +391,7 @@ impl<'a, Tree: 'static + MerkleTreeTrait, G: 'static + Hasher> StackedDrg<'a, Tr
             // Verify synth proofs prior to writing because `ProofScheme`'s verification API is not
             // amenable to prover-only verification (i.e. the API uses public values, whereas synthetic
             // proofs are known only to the prover).
-            let pub_params = PublicParams::<Tree>::new(graph.clone(), layer_challenges.clone());
+            let pub_params = PublicParams::<Tree>::new(graph.clone(), challenges.clone(), layers);
             let replica_id: Fr = pub_inputs.replica_id.into();
             let comm_r: Fr = pub_inputs
                 .tau
@@ -438,7 +440,8 @@ impl<'a, Tree: 'static + MerkleTreeTrait, G: 'static + Hasher> StackedDrg<'a, Tr
     fn read_porep_proofs_from_synth(
         sector_nodes: usize,
         pub_inputs: &PublicInputs<<Tree::Hasher as Hasher>::Domain, <G as Hasher>::Domain>,
-        layer_challenges: &LayerChallenges,
+        challenges: &LayerChallenges,
+        layers: usize,
         t_aux: &TemporaryAuxCache<Tree, G>,
         partition_count: usize,
     ) -> Result<Vec<Vec<Proof<Tree, G>>>> {
@@ -463,15 +466,13 @@ impl<'a, Tree: 'static + MerkleTreeTrait, G: 'static + Hasher> StackedDrg<'a, Tr
         let path = t_aux.synth_proofs_path();
         info!("reading synthetic vanilla proofs from file: {:?}", path);
 
-        let num_layers = layer_challenges.layers();
-
         let mut file = File::open(&path)
             .map(BufReader::new)
             .with_context(|| format!("failed to open synthetic vanilla proofs file: {:?}", path))?;
 
         let porep_proofs = (0..partition_count as u8)
             .map(|k| {
-                let synth_indexes = layer_challenges.derive_synth_indexes(
+                let synth_indexes = challenges.derive_synth_indexes(
                     sector_nodes,
                     &pub_inputs.replica_id,
                     comm_r,
@@ -479,18 +480,13 @@ impl<'a, Tree: 'static + MerkleTreeTrait, G: 'static + Hasher> StackedDrg<'a, Tr
                     k,
                 );
 
-                SynthProofs::read(
-                    &mut file,
-                    sector_nodes,
-                    num_layers,
-                    synth_indexes.into_iter(),
-                )
-                .with_context(|| {
-                    format!(
-                        "failed to read partition k={} synthetic proofs from file: {:?}",
-                        k, path,
-                    )
-                })
+                SynthProofs::read(&mut file, sector_nodes, layers, synth_indexes.into_iter())
+                    .with_context(|| {
+                        format!(
+                            "failed to read partition k={} synthetic proofs from file: {:?}",
+                            k, path,
+                        )
+                    })
             })
             .collect::<Result<Vec<Vec<Proof<Tree, G>>>>>()?;
 
@@ -500,18 +496,16 @@ impl<'a, Tree: 'static + MerkleTreeTrait, G: 'static + Hasher> StackedDrg<'a, Tr
 
     pub fn extract_and_invert_transform_layers(
         graph: &StackedBucketGraph<Tree::Hasher>,
-        layer_challenges: &LayerChallenges,
+        layers: usize,
         replica_id: &<Tree::Hasher as Hasher>::Domain,
         data: &mut [u8],
         config: StoreConfig,
     ) -> Result<()> {
         trace!("extract_and_invert_transform_layers");
 
-        let layers = layer_challenges.layers();
         assert!(layers > 0);
 
-        let labels =
-            Self::generate_labels_for_decoding(graph, layer_challenges, replica_id, config)?;
+        let labels = Self::generate_labels_for_decoding(graph, layers, replica_id, config)?;
 
         let last_layer_labels = labels.labels_for_last_layer()?;
         let size = Store::len(last_layer_labels);
@@ -535,7 +529,7 @@ impl<'a, Tree: 'static + MerkleTreeTrait, G: 'static + Hasher> StackedDrg<'a, Tr
     /// Generates the layers as needed for encoding.
     fn generate_labels_for_encoding<P>(
         graph: &StackedBucketGraph<Tree::Hasher>,
-        layer_challenges: &LayerChallenges,
+        layers: usize,
         replica_id: &<Tree::Hasher as Hasher>::Domain,
         cache_path: P,
     ) -> Result<(Labels<Tree>, Vec<LayerState>)>
@@ -551,7 +545,7 @@ impl<'a, Tree: 'static + MerkleTreeTrait, G: 'static + Hasher> StackedDrg<'a, Tr
                 create_label::multi::create_labels_for_encoding(
                     graph,
                     &parent_cache,
-                    layer_challenges.layers(),
+                    layers,
                     replica_id,
                     &cache_path,
                 )
@@ -560,7 +554,7 @@ impl<'a, Tree: 'static + MerkleTreeTrait, G: 'static + Hasher> StackedDrg<'a, Tr
                 create_label::single::create_labels_for_encoding(
                     graph,
                     &mut parent_cache,
-                    layer_challenges.layers(),
+                    layers,
                     replica_id,
                     &cache_path,
                 )
@@ -573,7 +567,7 @@ impl<'a, Tree: 'static + MerkleTreeTrait, G: 'static + Hasher> StackedDrg<'a, Tr
             create_label::single::create_labels_for_encoding(
                 graph,
                 &mut parent_cache,
-                layer_challenges.layers(),
+                layers,
                 replica_id,
                 &cache_path,
             )
@@ -583,7 +577,7 @@ impl<'a, Tree: 'static + MerkleTreeTrait, G: 'static + Hasher> StackedDrg<'a, Tr
     /// Generates the layers, as needed for decoding.
     pub fn generate_labels_for_decoding(
         graph: &StackedBucketGraph<Tree::Hasher>,
-        layer_challenges: &LayerChallenges,
+        layers: usize,
         replica_id: &<Tree::Hasher as Hasher>::Domain,
         config: StoreConfig,
     ) -> Result<LabelsCache<Tree>> {
@@ -596,7 +590,7 @@ impl<'a, Tree: 'static + MerkleTreeTrait, G: 'static + Hasher> StackedDrg<'a, Tr
                 create_label::multi::create_labels_for_decoding(
                     graph,
                     &parent_cache,
-                    layer_challenges.layers(),
+                    layers,
                     replica_id,
                     config,
                 )
@@ -605,7 +599,7 @@ impl<'a, Tree: 'static + MerkleTreeTrait, G: 'static + Hasher> StackedDrg<'a, Tr
                 create_label::single::create_labels_for_decoding(
                     graph,
                     &mut parent_cache,
-                    layer_challenges.layers(),
+                    layers,
                     replica_id,
                     config,
                 )
@@ -618,7 +612,7 @@ impl<'a, Tree: 'static + MerkleTreeTrait, G: 'static + Hasher> StackedDrg<'a, Tr
             create_label::single::create_labels_for_decoding(
                 graph,
                 &mut parent_cache,
-                layer_challenges.layers(),
+                layers,
                 replica_id,
                 config,
             )
@@ -1472,7 +1466,7 @@ impl<'a, Tree: 'static + MerkleTreeTrait, G: 'static + Hasher> StackedDrg<'a, Tr
 
     fn transform_and_replicate_layers(
         graph: &StackedBucketGraph<Tree::Hasher>,
-        layer_challenges: &LayerChallenges,
+        layers: usize,
         mut data: Data<'_>,
         data_tree: Option<BinaryMerkleTree<G>>,
         // The directory where the files we operate on are stored.
@@ -1506,7 +1500,6 @@ impl<'a, Tree: 'static + MerkleTreeTrait, G: 'static + Hasher> StackedDrg<'a, Tr
         assert!(binary_arity_valid);
         assert!(other_arity_valid);
 
-        let layers = layer_challenges.layers();
         assert!(layers > 0);
 
         // Generate all store configs that we need based on the
@@ -1669,12 +1662,7 @@ impl<'a, Tree: 'static + MerkleTreeTrait, G: 'static + Hasher> StackedDrg<'a, Tr
         info!("replicate_phase1");
 
         let labels_and_layer_states = measure_op(Operation::EncodeWindowTimeAll, || {
-            Self::generate_labels_for_encoding(
-                &pp.graph,
-                &pp.layer_challenges,
-                replica_id,
-                cache_path,
-            )
+            Self::generate_labels_for_encoding(&pp.graph, pp.layers, replica_id, cache_path)
         })?;
 
         Ok(labels_and_layer_states)
@@ -1700,7 +1688,7 @@ impl<'a, Tree: 'static + MerkleTreeTrait, G: 'static + Hasher> StackedDrg<'a, Tr
 
         let (tau, paux, taux) = Self::transform_and_replicate_layers(
             &pp.graph,
-            &pp.layer_challenges,
+            pp.layers,
             data,
             data_tree,
             cache_path,
