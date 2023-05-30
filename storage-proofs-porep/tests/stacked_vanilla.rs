@@ -106,14 +106,15 @@ fn test_extract_all<Tree: 'static + MerkleTreeTrait>() {
     let replica_path = cache_dir.path().join("replica-path");
     let mut mmapped_data = setup_replica(&data, &replica_path);
 
-    let layer_challenges = LayerChallenges::new(DEFAULT_STACKED_LAYERS, 5);
+    let challenges = LayerChallenges::new(5);
 
     let sp = SetupParams {
         nodes,
         degree: BASE_DEGREE,
         expansion_degree: EXP_DEGREE,
         porep_id: [32; 32],
-        layer_challenges: layer_challenges.clone(),
+        challenges,
+        layers: DEFAULT_STACKED_LAYERS,
         api_version: ApiVersion::V1_2_0,
         api_features: vec![],
     };
@@ -135,7 +136,7 @@ fn test_extract_all<Tree: 'static + MerkleTreeTrait>() {
 
     let (_, label_states) = StackedDrg::<Tree, Blake2sHasher>::generate_labels_for_encoding(
         &pp.graph,
-        &layer_challenges,
+        DEFAULT_STACKED_LAYERS,
         &replica_id,
         &config.path,
     )
@@ -153,7 +154,7 @@ fn test_extract_all<Tree: 'static + MerkleTreeTrait>() {
 
     let (_, label_states) = StackedDrg::<Tree, Blake2sHasher>::generate_labels_for_encoding(
         &pp.graph,
-        &layer_challenges,
+        DEFAULT_STACKED_LAYERS,
         &replica_id,
         &config.path,
     )
@@ -214,14 +215,15 @@ fn test_stacked_porep_resume_seal() {
     let mut mmapped_data2 = setup_replica(&data, &replica_path2);
     let mut mmapped_data3 = setup_replica(&data, &replica_path3);
 
-    let layer_challenges = LayerChallenges::new(DEFAULT_STACKED_LAYERS, 5);
+    let challenges = LayerChallenges::new(5);
 
     let sp = SetupParams {
         nodes,
         degree: BASE_DEGREE,
         expansion_degree: EXP_DEGREE,
         porep_id: [32; 32],
-        layer_challenges: layer_challenges.clone(),
+        challenges,
+        layers: DEFAULT_STACKED_LAYERS,
         api_version: ApiVersion::V1_2_0,
         api_features: vec![],
     };
@@ -267,7 +269,7 @@ fn test_stacked_porep_resume_seal() {
     // delete last 2 layers
     let (_, label_states) = StackedDrg::<Tree, Blake2sHasher>::generate_labels_for_encoding(
         &pp.graph,
-        &layer_challenges,
+        DEFAULT_STACKED_LAYERS,
         &replica_id,
         &config.path,
     )
@@ -316,7 +318,7 @@ table_tests! {
 }
 
 fn test_prove_verify_fixed(n: usize) {
-    let challenges = LayerChallenges::new(DEFAULT_STACKED_LAYERS, 5);
+    let challenges = LayerChallenges::new(5);
 
     test_prove_verify::<DiskTree<Sha256Hasher, U8, U0, U0>>(n, challenges.clone());
     test_prove_verify::<DiskTree<Sha256Hasher, U8, U2, U0>>(n, challenges.clone());
@@ -381,7 +383,8 @@ fn test_prove_verify<Tree: 'static + MerkleTreeTrait>(n: usize, challenges: Laye
         degree,
         expansion_degree,
         porep_id: arbitrary_porep_id,
-        layer_challenges: challenges,
+        challenges,
+        layers: DEFAULT_STACKED_LAYERS,
         api_version: ApiVersion::V1_2_0,
         api_features: vec![],
     };
@@ -450,13 +453,15 @@ fn test_stacked_porep_setup_terminates() {
     let degree = BASE_DEGREE;
     let expansion_degree = EXP_DEGREE;
     let nodes = 1024 * 1024 * 32 * 8; // This corresponds to 8GiB sectors (32-byte nodes)
-    let layer_challenges = LayerChallenges::new(10, 333);
+    let challenges = LayerChallenges::new(333);
+    let layers = 10;
     let sp = SetupParams {
         nodes,
         degree,
         expansion_degree,
         porep_id: [32; 32],
-        layer_challenges,
+        challenges,
+        layers,
         api_version: ApiVersion::V1_2_0,
         api_features: vec![],
     };
@@ -593,8 +598,6 @@ fn test_generate_labels_aux(
     )
     .unwrap();
 
-    let unused_layer_challenges = LayerChallenges::new(layers, 0);
-
     let labels = StackedDrg::<
         // Although not generally correct for every size, the hasher shape is not used,
         // so for purposes of testing label creation, it is safe to supply a dummy.
@@ -602,7 +605,7 @@ fn test_generate_labels_aux(
         Sha256Hasher,
     >::generate_labels_for_decoding(
         &graph,
-        &unused_layer_challenges,
+        layers,
         &<PoseidonHasher as Hasher>::Domain::try_from_bytes(&replica_id).unwrap(),
         config,
     )

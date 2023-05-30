@@ -35,7 +35,7 @@ impl<'a, Tree: 'static + MerkleTreeTrait, G: 'static + Hasher> PoRep<'a, Tree::H
     ) -> Result<(Self::Tau, Self::ProverAux)> {
         let (tau, p_aux, t_aux) = Self::transform_and_replicate_layers(
             &pp.graph,
-            &pp.layer_challenges,
+            pp.layers,
             replica_id,
             data,
             data_tree,
@@ -54,7 +54,7 @@ impl<'a, Tree: 'static + MerkleTreeTrait, G: 'static + Hasher> PoRep<'a, Tree::H
     ) -> Result<()> {
         Self::extract_and_invert_transform_layers(
             &pp.graph,
-            &pp.layer_challenges,
+            pp.layers,
             replica_id,
             data,
             config.expect("Missing store config"),
