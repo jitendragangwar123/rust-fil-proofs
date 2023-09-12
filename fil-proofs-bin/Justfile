@@ -84,6 +84,8 @@ challenges_2kib:
 replica_id:
     echo '{"comm_d": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "porep_seed": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "prover_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "sector_id": 12345678, "ticket": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00"}'|RUST_LOG=trace cargo run --bin replica-id
 
-# Default Synthetic PoRep challenge count is 2^18 = 262144
 challenges_synth_2kib:
-    echo '{"comm_r": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "num_challenges": 64, "replica_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "sector_size": 2048, "seed": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00"}'|RUST_LOG=trace cargo run --bin challenges-synth
+    echo '{"comm_r": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "num_draw_challenges": 64, "num_generate_challenges": 64, "replica_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "sector_size": 2048, "seed": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00"}'|RUST_LOG=trace cargo run --bin challenges-synth
+
+challenges_synth_32gib:
+ echo '{"comm_r": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "num_draw_challenges": 262144, "num_generate_challenges": 1073741824, "replica_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "sector_size": 34359738368, "seed": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00"}'|RUST_LOG=trace cargo run --release --bin challenges-synth

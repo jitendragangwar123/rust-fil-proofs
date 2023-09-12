@@ -12,8 +12,10 @@ use storage_proofs_porep::stacked::SynthChallenges;
 struct ChallengesSynthParameters {
     #[serde(with = "SerHex::<StrictPfx>")]
     comm_r: [u8; 32],
-    /// The number of challenges to create.
-    num_challenges: usize,
+    /// The number of challenges to draw from the generated challenges.
+    num_draw_challenges: usize,
+    /// The total number number of challenges to generate.
+    num_generate_challenges: usize,
     #[serde(with = "SerHex::<StrictPfx>")]
     replica_id: [u8; 32],
     /// Sector size is used to calculate the number of nodes.
@@ -38,9 +40,13 @@ fn main() -> Result<()> {
         / NODE_SIZE;
     let replica_id = Fr::from_repr_vartime(params.replica_id).expect("must be valid field element");
     let comm_r = Fr::from_repr_vartime(params.comm_r).expect("must be valid field element");
-    let challenges =
-        SynthChallenges::new(sector_nodes, &replica_id, &comm_r, params.num_challenges)
-            .gen_porep_challenges(params.num_challenges, &params.seed);
+    let challenges = SynthChallenges::new(
+        sector_nodes,
+        &replica_id,
+        &comm_r,
+        params.num_generate_challenges,
+    )
+    .gen_porep_challenges(params.num_draw_challenges, &params.seed);
 
     let output = ChallengesSynthOutput { challenges };
     info!("{:?}", output);
