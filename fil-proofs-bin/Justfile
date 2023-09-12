@@ -79,7 +79,11 @@ encode_replica_16kib:
     b2sum /tmp/sealed /tmp/window-post-16KiB-dir/sealed-file
 
 challenges_2kib:
-    echo '{"replica_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "sector_size": 2048, "seed": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "num_challenges": 2, "num_partitions": 1}'|RUST_LOG=trace cargo run --bin challenges
+    echo '{"num_challenges": 2, "partition": 0, "replica_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "sector_size": 2048, "seed": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00"}'|RUST_LOG=trace cargo run --bin challenges
 
 replica_id:
     echo '{"comm_d": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "porep_seed": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "prover_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "sector_id": 12345678, "ticket": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00"}'|RUST_LOG=trace cargo run --bin replica-id
+
+# Default Synthetic PoRep challenge count is 2^18 = 262144
+challenges_synth_2kib:
+    echo '{"comm_r": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "num_challenges": 64, "replica_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "sector_size": 2048, "seed": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00"}'|RUST_LOG=trace cargo run --bin challenges-synth
