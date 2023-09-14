@@ -739,7 +739,9 @@ where
     // Make sure p_aux exists and is valid.
     let _ = util::get_p_aux::<Tree>(cache)?;
 
-    // Make sure t_aux exists and is valid.
+    #[cfg(feature = "fixed-rows-to-discard")]
+    let t_aux = util::get_t_aux::<Tree>(cache, metadata.len())?;
+    #[cfg(not(feature = "fixed-rows-to-discard"))]
     let t_aux = util::get_t_aux::<Tree>(cache)?;
 
     // Verify all stores/labels within the Labels object.

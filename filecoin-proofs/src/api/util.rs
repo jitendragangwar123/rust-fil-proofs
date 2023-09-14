@@ -83,8 +83,45 @@ pub(crate) fn get_p_aux<Tree: MerkleTreeTrait>(
     Ok(p_aux)
 }
 
-/// Instantiates t_aux from the specified cache_dir for access to  labels and tree_d, tree_c,
+/// Instantiates t_aux from default values for access to labels and tree_d, tree_c, tree_r_last
+/// store configs
+#[cfg(feature = "fixed-rows-to-discard")]
+// Silence Clippy warning in order to have the same return value as without this feature.
+#[allow(clippy::unnecessary_wraps)]
+pub(crate) fn get_t_aux<Tree: MerkleTreeTrait>(
+    cache_path: &Path,
+    sector_bytes: u64,
+) -> Result<TemporaryAux<Tree, DefaultPieceHasher>> {
+    trace!(
+        "Instantiating TemporaryAux from default values with cache_path at {:?}",
+        cache_path
+    );
+    let t_aux_path =
+        merkletree::store::StoreConfig::data_path(cache_path, &CacheKey::TAux.to_string());
+    if Path::new(&t_aux_path).exists() {
+        log::warn!(
+            "`t_aux` file exists, but is ignored t_aux={:?}",
+            &t_aux_path
+        );
+    }
+
+    let sector_nodes = sector_bytes as usize / storage_proofs_core::util::NODE_SIZE;
+    let layers = *crate::constants::LAYERS
+        .read()
+        .expect("LAYERS poisoned")
+        .get(&sector_bytes)
+        .expect("unknown sector size");
+
+    Ok(TemporaryAux::new(
+        sector_nodes,
+        layers,
+        cache_path.to_path_buf(),
+    ))
+}
+
+/// Instantiates t_aux from the specified cache_dir for access to labels and tree_d, tree_c,
 /// tree_r_last store configs.
+#[cfg(not(feature = "fixed-rows-to-discard"))]
 pub(crate) fn get_t_aux<Tree: MerkleTreeTrait>(
     cache_path: &Path,
 ) -> Result<TemporaryAux<Tree, DefaultPieceHasher>> {
@@ -101,6 +138,7 @@ pub(crate) fn get_t_aux<Tree: MerkleTreeTrait>(
 }
 
 /// Persist t_aux.
+#[cfg(not(feature = "fixed-rows-to-discard"))]
 pub(crate) fn persist_t_aux<Tree: MerkleTreeTrait>(
     t_aux: &TemporaryAux<Tree, DefaultPieceHasher>,
     cache_path: &Path,
