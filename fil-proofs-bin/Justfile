@@ -89,3 +89,6 @@ challenges_synth_2kib:
 
 challenges_synth_32gib:
  echo '{"comm_r": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "num_draw_challenges": 262144, "num_generate_challenges": 1073741824, "replica_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "sector_size": 34359738368, "seed": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00"}'|RUST_LOG=trace cargo run --release --bin challenges-synth
+
+read_commit_phase1_output_32gib:
+    echo '{"commit_phase1_output_path": "resources/test/commit-phase1-output", "sector_size": 34359738368}' | RUST_LOG=trace cargo run --bin read-commit-phase1-output
