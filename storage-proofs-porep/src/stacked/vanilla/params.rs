@@ -453,7 +453,7 @@ impl<Proof: MerkleProofTrait> ReplicaColumnProof<Proof> {
 ///         4.6.1) Parent's column (32 bytes per layer)
 ///         4.6.2) Parent's proof_c (32 bytes for leaf_c and 32 bytes per path_c sibling)
 ///     4.7) Challenge's proof_r (32 bytes for leaf_r and 32 bytes per path_r sibling)
-pub(crate) struct SynthProofs;
+pub struct SynthProofs;
 
 impl SynthProofs {
     /// Serializes and writes synthetic proofs `proofs` into `writer`.
