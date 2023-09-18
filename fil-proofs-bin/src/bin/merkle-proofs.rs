@@ -1,11 +1,7 @@
-use std::{
-    fs,
-    io::{self, BufRead, BufReader, BufWriter, Write},
-    marker::PhantomData,
-    path::PathBuf,
-};
+use std::{fs, marker::PhantomData, path::PathBuf};
 
 use anyhow::Result;
+use fil_proofs_bin::cli;
 use filecoin_hashers::sha256::Sha256Hasher;
 use filecoin_proofs::{parameters::public_params, with_shape, DefaultPieceHasher, PoRepConfig};
 use generic_array::typenum::Unsigned;
@@ -55,24 +51,6 @@ struct MerkleProofsOutput {
     // This is a hack to serialize a struct into an empty Object instead of null
     #[serde(skip_serializing)]
     _placeholder: (),
-}
-
-/// Parses a single line and returns the parsed parameters.
-fn parse_line<R: BufRead>(input: R) -> Result<MerkleProofsParameters, serde_json::Error> {
-    let line = input
-        .lines()
-        .next()
-        .expect("Nothing to iterate")
-        .expect("Failed to read line");
-    serde_json::from_str(&line)
-}
-
-/// Outputs an object serialized as JSON.
-fn print_line<W: Write, S: Serialize>(output: &mut W, data: S) -> Result<()> {
-    let line = serde_json::to_vec(&data)?;
-    output.write_all(&line)?;
-    output.write_all(&[b'\n'])?;
-    Ok(())
 }
 
 // TODO vmx 2023-09-15: This is a copy of `TemporaryAux::new()` which is only available on a branch
@@ -197,7 +175,7 @@ fn merkle_proofs<Tree: 'static + MerkleTreeTrait>(
 fn main() -> Result<()> {
     fil_logger::maybe_init();
 
-    let params = parse_line(BufReader::new(io::stdin()))?;
+    let params: MerkleProofsParameters = cli::parse_stdin()?;
     info!("{:?}", params);
 
     let proofs = with_shape!(
@@ -223,7 +201,7 @@ fn main() -> Result<()> {
 
     let output = MerkleProofsOutput::default();
     info!("{:?}", output);
-    print_line(&mut BufWriter::new(io::stdout()), output)?;
+    cli::print_stdout(output)?;
 
     Ok(())
 }
