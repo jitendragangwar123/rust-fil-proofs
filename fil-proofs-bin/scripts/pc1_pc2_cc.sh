@@ -17,8 +17,6 @@ The input parameters are given by piping in JSON with the following keys:
  - output_dir: The directory where all files (layers as well as trees) are stored.
  - porep_id: The PoRep ID formatted in hex with leading 0x.
  - replica_id: The Replica ID formatted in hex with leading 0x.
- - replica_path: The path to the replica, for CC sectors, that's the last layer of SDR,
-   e.g. "sc-02-data-layer-11.dat"
  - sector_size: The size of the sector in bytes.
 
 Example JSON:
@@ -26,7 +24,6 @@ Example JSON:
   "output_dir": "/path/to/some/dir",
   "porep_id": "0x0500000000000000000000000000000000000000000000000000000000000000",
   "replica_id": "0xd93f7c0618c236179361de2164ce34ffaf26ecf3be7bf7e6b8f0cfcf886ad0d0",
-  "replica_path": "/path/to/replica.file",
   "sector_size: "2048"
 }
 EOF
@@ -62,7 +59,6 @@ read -r input_args
 output_dir=$(echo "${input_args}" | ${JQ} '.output_dir')
 porep_id=$(echo "${input_args}" | ${JQ} '.porep_id')
 replica_id=$(echo "${input_args}" | ${JQ} '.replica_id')
-replica_path=$(echo "${input_args}" | ${JQ} '.replica_path')
 sector_size=$(echo "${input_args}" | ${JQ} '.sector_size')
 
 if [ "${output_dir}" = 'null' ]; then
@@ -73,9 +69,6 @@ if [ "${porep_id}" = 'null' ]; then
 fi
 if [ "${replica_id}" = 'null' ]; then
     echo "'replica_id' not set." && exit 6
-fi
-if [ "${replica_path}" = 'null' ]; then
-    echo "'replica_path' not set." && exit 7
 fi
 if [ "${sector_size}" = 'null' ]; then
     echo "'sector_size' not set." && exit 8
@@ -100,8 +93,12 @@ tree_c=$(${JO} input_dir="${output_dir}" num_layers="${num_layers}" output_dir="
 comm_c=$(echo "${tree_c}" | ${JQ} '.comm_c')
 
 
+# The sector key is the last layer of the SDR process.
+sector_key_path="${output_dir}/sc-02-data-layer-${num_layers}.dat"
+
+
 # Tree building for the replica commitment.
-tree_r_last=$(${JO} output_dir="${output_dir}" replica_path="${replica_path}" sector_size="${sector_size}" | ${CARGO} --bin tree-r-last)
+tree_r_last=$(${JO} output_dir="${output_dir}" replica_path="${sector_key_path}" sector_size="${sector_size}" | ${CARGO} --bin tree-r-last)
 >&2 echo "TreeRLast: ${tree_r_last}"
 comm_r_last=$(echo "${tree_r_last}" | ${JQ} '.comm_r_last')
 
