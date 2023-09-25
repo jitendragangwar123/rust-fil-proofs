@@ -38,6 +38,7 @@ struct MerkleProofsParameters {
     porep_id: [u8; 32],
     #[serde(with = "SerHex::<StrictPfx>")]
     replica_id: [u8; 32],
+    replica_path: String,
     sector_size: u64,
     // TODO vmx 2023-08-03: Check if that's correct or if it should be called `porep_seed`.
     #[serde(with = "SerHex::<StrictPfx>")]
@@ -61,7 +62,7 @@ fn new_temporary_aux<Tree: MerkleTreeTrait>(
     cache_path: PathBuf,
 ) -> TemporaryAux<Tree, Sha256Hasher> {
     use merkletree::merkle::get_merkle_tree_len;
-    use storage_proofs_core::util;
+    use storage_proofs_core::{merkle::get_base_tree_count, util};
 
     let labels = (1..=num_layers)
         .map(|layer| StoreConfig {
@@ -81,14 +82,16 @@ fn new_temporary_aux<Tree: MerkleTreeTrait>(
         rows_to_discard: 0,
     };
 
-    let tree_size = get_merkle_tree_len(sector_nodes, Tree::Arity::to_usize())
+    let tree_count = get_base_tree_count::<Tree>();
+    let tree_nodes = sector_nodes / tree_count;
+    let tree_size = get_merkle_tree_len(tree_nodes, Tree::Arity::to_usize())
         .expect("Tree must have enough leaves and have an arity of power of two");
 
     let tree_r_last_config = StoreConfig {
         path: cache_path.clone(),
         id: CacheKey::CommRLastTree.to_string(),
         size: Some(tree_size),
-        rows_to_discard: util::default_rows_to_discard(sector_nodes, Tree::Arity::to_usize()),
+        rows_to_discard: util::default_rows_to_discard(tree_nodes, Tree::Arity::to_usize()),
     };
 
     let tree_c_config = StoreConfig {
@@ -116,6 +119,7 @@ fn merkle_proofs<Tree: 'static + MerkleTreeTrait>(
     num_partitions: usize,
     porep_id: [u8; 32],
     replica_id: [u8; 32],
+    replica_path: String,
     sector_size: u64,
     seed: [u8; 32],
     // TODO vmx 2023-08-04: make sure that different paths actually work. Probably they have to be
@@ -145,7 +149,7 @@ fn merkle_proofs<Tree: 'static + MerkleTreeTrait>(
         num_layers,
         PathBuf::from(&input_dir),
     );
-    let t_aux_cache = TemporaryAuxCache::new(&t_aux, input_dir.into(), false)
+    let t_aux_cache = TemporaryAuxCache::new(&t_aux, replica_path.into(), false)
         .expect("failed to restore contents of t_aux");
     let priv_inputs = PrivateInputs {
         p_aux,
@@ -189,6 +193,7 @@ fn main() -> Result<()> {
         params.num_partitions,
         params.porep_id,
         params.replica_id,
+        params.replica_path,
         params.sector_size,
         params.seed,
     )?;

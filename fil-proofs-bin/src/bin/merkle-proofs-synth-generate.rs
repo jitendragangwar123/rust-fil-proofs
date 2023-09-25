@@ -1,4 +1,7 @@
-use std::{fs, marker::PhantomData, path::PathBuf};
+// Generates a file named `syn-porep-vanilla-proofs.dat` that contains all Synthetic PoRep proofs.
+// It's the basis to extract a subset of the proofs for the Commit Phase2.
+
+use std::{marker::PhantomData, path::PathBuf};
 
 use anyhow::Result;
 use fil_proofs_bin::cli;
@@ -17,14 +20,14 @@ use storage_proofs_core::{
     util::NODE_SIZE,
 };
 use storage_proofs_porep::stacked::{
-    Labels, PersistentAux, PrivateInputs, PublicInputs, StackedDrg, SynthProofs, Tau, TemporaryAux,
+    Labels, PersistentAux, PrivateInputs, PublicInputs, StackedDrg, Tau, TemporaryAux,
     TemporaryAuxCache, BINARY_ARITY,
 };
 
 /// Note that `comm_c`, `comm_d` and `comm_r_last` are not strictly needed as they could be read
 /// from the generated trees. Though they are passed in for sanity checking.
 #[derive(Debug, Deserialize, Serialize)]
-struct MerkleProofsSynthParameters {
+struct MerkleProofsSynthGenerateParameters {
     #[serde(with = "SerHex::<StrictPfx>")]
     comm_c: [u8; 32],
     #[serde(with = "SerHex::<StrictPfx>")]
@@ -40,16 +43,14 @@ struct MerkleProofsSynthParameters {
     porep_id: [u8; 32],
     #[serde(with = "SerHex::<StrictPfx>")]
     replica_id: [u8; 32],
+    replica_path: String,
     sector_size: u64,
-    // TODO vmx 2023-08-03: Check if that's correct or if it should be called `porep_seed`.
-    #[serde(with = "SerHex::<StrictPfx>")]
-    seed: [u8; 32],
 }
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 //struct MerkleProofsOutput<Tree: 'static + MerkleTreeTrait, G: Hasher> {
 //proofs: Vec<Vec<Proof<Tree, G>>>,
-struct MerkleProofsSynthOutput {
+struct MerkleProofsSynthGenerateOutput {
     // This is a hack to serialize a struct into an empty Object instead of null
     #[serde(skip_serializing)]
     _placeholder: (),
@@ -63,7 +64,7 @@ fn new_temporary_aux<Tree: MerkleTreeTrait>(
     cache_path: PathBuf,
 ) -> TemporaryAux<Tree, Sha256Hasher> {
     use merkletree::merkle::get_merkle_tree_len;
-    use storage_proofs_core::util;
+    use storage_proofs_core::{merkle::get_base_tree_count, util};
 
     let labels = (1..=num_layers)
         .map(|layer| StoreConfig {
@@ -83,14 +84,16 @@ fn new_temporary_aux<Tree: MerkleTreeTrait>(
         rows_to_discard: 0,
     };
 
-    let tree_size = get_merkle_tree_len(sector_nodes, Tree::Arity::to_usize())
+    let tree_count = get_base_tree_count::<Tree>();
+    let tree_nodes = sector_nodes / tree_count;
+    let tree_size = get_merkle_tree_len(tree_nodes, Tree::Arity::to_usize())
         .expect("Tree must have enough leaves and have an arity of power of two");
 
     let tree_r_last_config = StoreConfig {
         path: cache_path.clone(),
         id: CacheKey::CommRLastTree.to_string(),
         size: Some(tree_size),
-        rows_to_discard: util::default_rows_to_discard(sector_nodes, Tree::Arity::to_usize()),
+        rows_to_discard: util::default_rows_to_discard(tree_nodes, Tree::Arity::to_usize()),
     };
 
     let tree_c_config = StoreConfig {
@@ -118,8 +121,8 @@ fn merkle_proofs<Tree: 'static + MerkleTreeTrait>(
     num_partitions: usize,
     porep_id: [u8; 32],
     replica_id: [u8; 32],
+    replica_path: String,
     sector_size: u64,
-    seed: [u8; 32],
 ) -> Result<()> {
     let porep_config = PoRepConfig::new_groth16(sector_size, porep_id, ApiVersion::V1_2_0)
         .with_feature(ApiFeature::SyntheticPoRep);
@@ -134,7 +137,9 @@ fn merkle_proofs<Tree: 'static + MerkleTreeTrait>(
         replica_id: replica_id.into(),
         tau: Some(tau),
         k: None,
-        seed: Some(seed),
+        // This is the crucial part. If no seed is given, then all of the Synthetic Merkle proofs
+        // are generated.
+        seed: None,
     };
     let p_aux = PersistentAux {
         comm_c: comm_c.into(),
@@ -145,8 +150,7 @@ fn merkle_proofs<Tree: 'static + MerkleTreeTrait>(
         num_layers,
         PathBuf::from(&data_dir),
     );
-    let t_aux_cache = TemporaryAuxCache::new(&t_aux, data_dir.into(), false)
-        .expect("failed to restore contents of t_aux");
+    let t_aux_cache = TemporaryAuxCache::new(&t_aux, replica_path.into(), false)?;
     let priv_inputs = PrivateInputs {
         p_aux,
         t_aux: t_aux_cache,
@@ -166,7 +170,7 @@ fn merkle_proofs<Tree: 'static + MerkleTreeTrait>(
 fn main() -> Result<()> {
     fil_logger::maybe_init();
 
-    let params: MerkleProofsSynthParameters = cli::parse_stdin()?;
+    let params: MerkleProofsSynthGenerateParameters = cli::parse_stdin()?;
     info!("{:?}", params);
 
     with_shape!(
@@ -180,11 +184,11 @@ fn main() -> Result<()> {
         params.num_partitions,
         params.porep_id,
         params.replica_id,
+        params.replica_path,
         params.sector_size,
-        params.seed,
     )?;
 
-    let output = MerkleProofsSynthOutput::default();
+    let output = MerkleProofsSynthGenerateOutput::default();
     info!("{:?}", output);
     cli::print_stdout(output)?;
 
