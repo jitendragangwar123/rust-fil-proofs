@@ -6,7 +6,7 @@ use std::path::Path;
 use anyhow::{ensure, Context, Result};
 use bellperson::groth16;
 use bincode::{deserialize, serialize};
-use blstrs::Scalar as Fr;
+use blstrs::{Bls12, Scalar as Fr};
 use ff::PrimeField;
 use filecoin_hashers::{Domain, Hasher};
 use fr32::bytes_into_fr;
@@ -17,6 +17,7 @@ use merkletree::store::StoreConfig;
 use rayon::prelude::*;
 use sha2::{Digest, Sha256};
 use storage_proofs_core::{
+    api_version::ApiVersion,
     cache_key::CacheKey,
     compound_proof::{self, CompoundProof},
     merkle::{get_base_tree_count, MerkleTreeTrait},
@@ -912,6 +913,18 @@ pub fn aggregate_empty_sector_update_proofs<
 ) -> Result<AggregateSnarkProof> {
     info!("aggregate_empty_sector_update_proofs:start");
 
+    info!(
+        "aggregate_empty_sector_update_proofs using API Version {}",
+        porep_config.api_version
+    );
+    ensure!(
+        porep_config.api_version > ApiVersion::V1_1_0,
+        "Empty Sector Update proof aggregation is supported in ApiVersion 1.2.0 or later"
+    );
+    ensure!(
+        aggregate_version == groth16::aggregate::AggregateVersion::V2,
+        "Empty sector update aggregation requires SnarkPackV2"
+    );
     ensure!(
         !sector_update_inputs.is_empty(),
         "cannot aggregate with empty sector_update_inputs"
@@ -989,6 +1002,19 @@ pub fn verify_aggregate_sector_update_proofs<
     aggregate_version: groth16::aggregate::AggregateVersion,
 ) -> Result<bool> {
     info!("verify_aggregate_sector_update_proofs:start");
+
+    info!(
+        "verify_aggregate_sector_update_proofs using API Version {}",
+        porep_config.api_version
+    );
+    ensure!(
+        porep_config.api_version > ApiVersion::V1_1_0,
+        "Empty Sector Update proof aggregation is supported in ApiVersion 1.2.0 or later"
+    );
+    ensure!(
+        aggregate_version == groth16::aggregate::AggregateVersion::V2,
+        "Empty sector update aggregate verification requires SnarkPackV2"
+    );
 
     let aggregate_proof =
         groth16::aggregate::AggregateProof::read(std::io::Cursor::new(&aggregate_proof_bytes))?;
