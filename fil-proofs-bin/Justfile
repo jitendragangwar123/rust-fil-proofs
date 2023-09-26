@@ -82,7 +82,7 @@ challenges_2kib:
     echo '{"num_challenges": 2, "partition": 0, "replica_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "sector_size": 2048, "seed": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00"}'|RUST_LOG=trace cargo run --bin challenges
 
 replica_id:
-    echo '{"comm_d": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "porep_seed": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "prover_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "sector_id": 12345678, "ticket": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00"}'|RUST_LOG=trace cargo run --bin replica-id
+    echo '{"comm_d": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "porep_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "prover_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "sector_id": 12345678, "ticket": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00"}'|RUST_LOG=trace cargo run --bin replica-id
 
 challenges_synth_2kib:
     echo '{"comm_r": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "num_draw_challenges": 64, "num_generate_challenges": 64, "replica_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "sector_size": 2048, "seed": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00"}'|RUST_LOG=trace cargo run --bin challenges-synth
