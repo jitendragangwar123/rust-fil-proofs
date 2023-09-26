@@ -792,6 +792,84 @@ impl SynthProofs {
 
         num_merkle_challenges * mem::size_of::<u64>() + total_proof_nodes * NODE_SIZE
     }
+
+    /// Returns the number of unique nodes are when all proofs are combined.
+    pub fn unique_nodes<Tree, G>(proofs: &[Proof<Tree, G>]) -> Result<(usize, usize)>
+    where
+        Tree: MerkleTreeTrait,
+        G: Hasher,
+    {
+        let mut unique_nodes = std::collections::HashSet::new();
+        let mut num_nodes = 0;
+        for proof in proofs {
+            for (path, length) in proof.comm_d_proofs.path() {
+                num_nodes += length;
+                for node in path {
+                    unique_nodes.insert(node.into_bytes());
+                }
+            }
+
+            for (path, length) in proof.comm_r_last_proof.path() {
+                num_nodes += length;
+                for node in path {
+                    unique_nodes.insert(node.into_bytes());
+                }
+            }
+
+            for node in proof.replica_column_proofs.c_x.column.rows() {
+                num_nodes += 1;
+                unique_nodes.insert(node.into_bytes());
+            }
+            for (path, length) in proof.replica_column_proofs.c_x.inclusion_proof.path() {
+                num_nodes += length;
+                for node in path {
+                    unique_nodes.insert(node.into_bytes());
+                }
+            }
+            for column_proof in &proof.replica_column_proofs.drg_parents {
+                for node in column_proof.column.rows() {
+                    num_nodes += 1;
+                    unique_nodes.insert(node.into_bytes());
+                }
+                for (path, length) in column_proof.inclusion_proof.path() {
+                    num_nodes += length;
+                    for node in path {
+                        unique_nodes.insert(node.into_bytes());
+                    }
+                }
+            }
+            for column_proof in &proof.replica_column_proofs.exp_parents {
+                for node in column_proof.column.rows() {
+                    num_nodes += 1;
+                    unique_nodes.insert(node.into_bytes());
+                }
+                for (path, length) in column_proof.inclusion_proof.path() {
+                    num_nodes += length;
+                    for node in path {
+                        unique_nodes.insert(node.into_bytes());
+                    }
+                }
+            }
+
+            for labeling_proof in &proof.labeling_proofs {
+                for node in &labeling_proof.parents {
+                    num_nodes += 1;
+                    unique_nodes.insert(node.into_bytes());
+                }
+            }
+
+            for node in &proof.encoding_proof.parents {
+                num_nodes += 1;
+                unique_nodes.insert(node.into_bytes());
+            }
+        }
+        trace!(
+            "vmx: num_nodes, num_unique_nodes: {} {}",
+            num_nodes,
+            unique_nodes.len()
+        );
+        Ok((num_nodes, unique_nodes.len()))
+    }
 }
 
 pub type TransformedLayers<Tree, G> = (
