@@ -103,8 +103,14 @@ pc1pc2_16kib:
 merkle_proofs_synth_generate_16kib:
     echo '{"comm_c": "0x1b61f9fe67494de955c92d12e02f99ddea102124d1bfd86d1fcc0e64a961bb06", "comm_d": "0xf9226160c8f927bfdcc418cdf203493146008eaefb7d02194d5e548189005108", "comm_r_last": "0xdbcf53a5db1289511d3ce5e333a8bdba94e01c95ebf74645fe92c0ce12c84a1b", "data_dir": "/tmp/bins-16kib", "num_layers": 2,  "porep_id": "0x0500000000000000000000000000000000000000000000000000000000000000", "replica_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "replica_path": "/tmp/bins-16kib/sealed-file", "sector_size": 16384, "seed": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00"}' | RUST_LOG=trace cargo run --bin merkle-proofs-synth-generate
 
+merkle_proofs_synth_extract_16kib:
+    echo '{"comm_r": "0x1b61f9fe67494de955c92d12e02f99ddea102124d1bfd86d1fcc0e64a961bb06", "num_challenges": 2, "num_layers": 2, "output_path": "/tmp/bins-16kib/extracted.dat", "replica_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "sector_size": 16384, "seed": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "synth_proofs_path": "/tmp/bins-16kib/syn-porep-vanilla-proofs.dat"}' | RUST_LOG=trace cargo run --bin merkle-proofs-synth-extract
+
 merkle_proofs_synth_generate_32gib:
     jo -- -s comm_c=0xb59b73958d310335a3b43491e15221ed8f2d22c1b86e77ca53439ad5aed02e2e -s comm_d=0x077e5fde35c50a9303a55009e3498a4ebedff39c42b710b730d8ec7ac7afa63e -s comm_r_last=0x3c1d2b533e2d6d7a62abd5b39d9c21344e190cc7ac6bca08340a548f53554b19 data_dir=/home/vmx/32gib num_layers=11 -s porep_id=0x0d00000000000000000000000000000000000000000000000000000000000000 -s replica_id=0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00 replica_path=/home/vmx/32gib/sc-02-data-layer-11.dat sector_size=34359738368 | RUST_LOG=trace /usr/bin/time -v cargo run --release --bin merkle-proofs-synth-generate
+
+merkle_proofs_synth_extract_32gib:
+    jo -- -s comm_r=0x1b61f9fe67494de955c92d12e02f99ddea102124d1bfd86d1fcc0e64a961bb06 num_challenges=180 num_layers=11 output_path=/home/vmx/32gib/extracted.dat -s replica_id=0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00 sector_size=34359738368 -s seed=0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00 synth_proofs_path=/home/vmx/32gib/syn-porep-vanilla-proofs.dat | RUST_LOG=trace cargo run --bin merkle-proofs-synth-extract
 
 merkle_proofs_synth_count_32gib:
     jo -- num_layers=11 sector_size=34359738368 synth_proofs_path=/home/vmx/32gib/syn-porep-vanilla-proofs.dat|RUST_LOG=trace cargo run --bin merkle-proofs-synth-count
