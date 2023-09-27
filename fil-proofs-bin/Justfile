@@ -96,6 +96,9 @@ read_commit_phase1_output_32gib:
 merkle_proofs_16kib:
     echo '{"comm_c": "0x1b61f9fe67494de955c92d12e02f99ddea102124d1bfd86d1fcc0e64a961bb06", "comm_d": "0xf9226160c8f927bfdcc418cdf203493146008eaefb7d02194d5e548189005108", "comm_r_last": "0xdbcf53a5db1289511d3ce5e333a8bdba94e01c95ebf74645fe92c0ce12c84a1b", "input_dir": "/tmp/bins-16kib", "num_layers": 2, "num_partitions": 1, "output_path": "/tmp/bins-16kib/orig-porep-vanilla-proofs.dat", "porep_id": "0x0500000000000000000000000000000000000000000000000000000000000000", "replica_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "replica_path": "/tmp/bins-16kib/sealed-file", "sector_size": 16384, "seed": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00"}' | RUST_LOG=trace cargo run --bin merkle-proofs
 
+merkle_proofs_32gib:
+    jo -- -s comm_c=0xb59b73958d310335a3b43491e15221ed8f2d22c1b86e77ca53439ad5aed02e2e -s comm_d=0x077e5fde35c50a9303a55009e3498a4ebedff39c42b710b730d8ec7ac7afa63e -s comm_r_last=0x3c1d2b533e2d6d7a62abd5b39d9c21344e190cc7ac6bca08340a548f53554b19 input_dir=/home/vmx/32gib num_layers=11 num_partitions=10 output_path=/home/vmx/32gib/orig-porep-vanilla-proofs.dat -s porep_id=0x0d00000000000000000000000000000000000000000000000000000000000000 -s replica_id=0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00 replica_path=/home/vmx/32gib/sc-02-data-layer-11.dat sector_size=34359738368 -s seed=0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00| RUST_LOG=trace /usr/bin/time -v cargo run --release --bin merkle-proofs
+
 pc1pc2_16kib:
     fallocate --length 16384 /tmp/unsealed-16kib.data
     jo -- input_path=/tmp/unsealed-16kib.data output_dir=/tmp/bins-16kib -s porep_id=0x0500000000000000000000000000000000000000000000000000000000000000 -s replica_id=0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00 replica_path=/tmp/bins-16kib/sealed-file sector_size=16384|./scripts/pc1_pc2.sh
