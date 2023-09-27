@@ -38,7 +38,6 @@ struct MerkleProofsSynthGenerateParameters {
     /// `syn-porep-vanilla-proofs.dat` will be stored.
     data_dir: String,
     num_layers: usize,
-    num_partitions: usize,
     #[serde(with = "SerHex::<StrictPfx>")]
     porep_id: [u8; 32],
     #[serde(with = "SerHex::<StrictPfx>")]
@@ -118,7 +117,6 @@ fn merkle_proofs<Tree: 'static + MerkleTreeTrait>(
     comm_r_last: [u8; 32],
     data_dir: String,
     num_layers: usize,
-    num_partitions: usize,
     porep_id: [u8; 32],
     replica_id: [u8; 32],
     replica_path: String,
@@ -160,7 +158,7 @@ fn merkle_proofs<Tree: 'static + MerkleTreeTrait>(
         &public_params,
         &public_inputs,
         &priv_inputs,
-        num_partitions,
+        1,
     )
     .expect("failed to generate partition proofs");
 
@@ -181,7 +179,6 @@ fn main() -> Result<()> {
         params.comm_r_last,
         params.data_dir,
         params.num_layers,
-        params.num_partitions,
         params.porep_id,
         params.replica_id,
         params.replica_path,
