@@ -1,3 +1,6 @@
+/// Reads in a commit phase1 output file and prints its JSON representation.
+/// The formatting is intentionally not as nice as for other tools (e.g. commitments are not
+/// represented as hex), so that it matches the JSON representation that is used by Lotus.
 use std::fs;
 
 use anyhow::{Context, Result};
