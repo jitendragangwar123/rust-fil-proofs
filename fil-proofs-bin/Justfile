@@ -90,6 +90,9 @@ challenges_synth_2kib:
 challenges_synth_32gib:
  echo '{"comm_r": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "num_draw_challenges": 262144, "num_generate_challenges": 1073741824, "replica_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "sector_size": 34359738368, "seed": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00"}'|RUST_LOG=trace cargo run --release --bin challenges-synth
 
+commit_phase1_output_read_16kib:
+    echo '{"commit_phase1_output_path": "/tmp/bins-16kib/commit-phase1-output.dat", "sector_size": 16384}' | RUST_LOG=trace cargo run --bin commit-phase1-output-read
+
 commit_phase1_output_read_32gib:
     echo '{"commit_phase1_output_path": "resources/test/commit-phase1-output", "sector_size": 34359738368}' | RUST_LOG=trace cargo run --bin commit-phase1-output-read
 
@@ -117,3 +120,9 @@ merkle_proofs_synth_extract_32gib:
 
 merkle_proofs_synth_count_32gib:
     jo -- num_layers=11 sector_size=34359738368 synth_proofs_path=/home/vmx/32gib/syn-porep-vanilla-proofs.dat|RUST_LOG=trace cargo run --bin merkle-proofs-synth-count
+
+commit_phase1_output_write_16kib:
+    echo '{"comm_d": "0xf9226160c8f927bfdcc418cdf203493146008eaefb7d02194d5e548189005108", "comm_r": "0x1b61f9fe67494de955c92d12e02f99ddea102124d1bfd86d1fcc0e64a961bb06", "num_challenges": 1, "num_layers": 2, "num_partitions": 1, "output_path": "/tmp/bins-16kib/commit-phase1-output.dat", "porep_proofs_path": "/tmp/bins-16kib/orig-porep-vanilla-proofs.dat", "replica_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "sector_size": 16384, "seed": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "ticket": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00"}' | RUST_BACKTRACE=1 RUST_LOG=trace cargo run --bin commit-phase1-output-write
+
+commit_phase1_output_write_32gib:
+    jo -- -s comm_d=0x077e5fde35c50a9303a55009e3498a4ebedff39c42b710b730d8ec7ac7afa63e -s comm_r=0x1b61f9fe67494de955c92d12e02f99ddea102124d1bfd86d1fcc0e64a961bb06 num_challenges=180 num_layers=11 num_partitions=10 output_path=/home/vmx/32gib/commit-phase1-output.dat porep_proofs_path=/home/vmx/32gib/orig-porep-vanilla-proofs.dat -s replica_id=0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00 sector_size=34359738368 -s seed=0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00 -s ticket=0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00 | RUST_LOG=trace /usr/bin/time -v cargo run --release --bin commit-phase1-output-write
