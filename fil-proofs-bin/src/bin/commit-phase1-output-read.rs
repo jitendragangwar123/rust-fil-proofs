@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use storage_proofs_core::merkle::MerkleTreeTrait;
 
 #[derive(Debug, Deserialize, Serialize)]
-struct ReadCommitPhase1OutputParameters {
+struct CommitPhase1OutputReadParameters {
     commit_phase1_output_path: String,
     sector_size: u64,
 }
@@ -34,7 +34,7 @@ fn deserialize_commit_phase1_output<Tree: MerkleTreeTrait>(
 fn main() -> Result<()> {
     fil_logger::maybe_init();
 
-    let params: ReadCommitPhase1OutputParameters = cli::parse_stdin()?;
+    let params: CommitPhase1OutputReadParameters = cli::parse_stdin()?;
     info!("{:?}", params);
 
     with_shape!(
