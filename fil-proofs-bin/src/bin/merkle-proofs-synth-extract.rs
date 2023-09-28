@@ -100,7 +100,6 @@ fn main() -> Result<()> {
         params.synth_proofs_path,
     )?;
 
-    // Store the proofs in a file. The partitions are written sequentially.
     fs::write(params.output_path, &proofs)?;
 
     let output = MerkleProofsSynthExtractOutput::default();

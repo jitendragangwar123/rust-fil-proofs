@@ -40,14 +40,11 @@ struct MerkleProofsParameters {
     replica_id: [u8; 32],
     replica_path: String,
     sector_size: u64,
-    // TODO vmx 2023-08-03: Check if that's correct or if it should be called `porep_seed`.
     #[serde(with = "SerHex::<StrictPfx>")]
     seed: [u8; 32],
 }
 
 #[derive(Debug, Default, Deserialize, Serialize)]
-//struct MerkleProofsOutput<Tree: 'static + MerkleTreeTrait, G: Hasher> {
-//proofs: Vec<Vec<Proof<Tree, G>>>,
 struct MerkleProofsOutput {
     // This is a hack to serialize a struct into an empty Object instead of null
     #[serde(skip_serializing)]
@@ -122,10 +119,7 @@ fn merkle_proofs<Tree: 'static + MerkleTreeTrait>(
     replica_path: String,
     sector_size: u64,
     seed: [u8; 32],
-    // TODO vmx 2023-08-04: make sure that different paths actually work. Probably they have to be
-    //) ->  Result<Vec<Vec<Proof<Tree, PoseidonHasher>>>> {
-    //) -> Result<Vec<Vec<Proof<Tree, Sha256Hasher>>>> {
-) -> Result<Vec<Vec<u8>>> {
+) -> Result<Vec<u8>> {
     let porep_config = PoRepConfig::new_groth16(sector_size, porep_id, ApiVersion::V1_2_0);
     let public_params = public_params(&porep_config)?;
     let tau = Tau {
@@ -161,19 +155,18 @@ fn merkle_proofs<Tree: 'static + MerkleTreeTrait>(
         &public_inputs,
         &priv_inputs,
         num_partitions,
-    )
-    .expect("failed to generate partition proofs");
+    )?;
 
-    let all_proofs_bytes = all_partition_proofs
-        .iter()
-        .map(|proofs| {
-            let mut proofs_bytes = Vec::new();
-            SynthProofs::write(&mut proofs_bytes, &proofs)
-                .expect("serializtion into vector always succeeds");
-            proofs_bytes
-        })
+    // For serialization we pretend that all proofs are in a single partition.
+    let proofs_single_partition = all_partition_proofs
+        .into_iter()
+        .flatten()
         .collect::<Vec<_>>();
-    Ok(all_proofs_bytes)
+
+    let mut proofs_bytes = Vec::new();
+    SynthProofs::write(&mut proofs_bytes, &proofs_single_partition[..])
+        .expect("serializtion into vector always succeeds");
+    Ok(proofs_bytes)
 }
 
 fn main() -> Result<()> {
@@ -198,11 +191,7 @@ fn main() -> Result<()> {
         params.seed,
     )?;
 
-    // Store the proofs in a file. The partitions are written sequentially.
-    fs::write(
-        &params.output_path,
-        &proofs.into_iter().flatten().collect::<Vec<u8>>(),
-    )?;
+    fs::write(&params.output_path, &proofs)?;
 
     let output = MerkleProofsOutput::default();
     info!("{:?}", output);
