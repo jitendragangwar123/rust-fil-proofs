@@ -52,8 +52,7 @@ fn merkle_proofs<Tree: 'static + MerkleTreeTrait<Hasher = PoseidonHasher>>(
         &replica_id.into(),
         &comm_r.into(),
         &seed,
-        // Synthetic PoRep is always a single partition
-        1,
+        0,
     );
 
     let mut file = File::open(&synth_proofs_path).with_context(|| {

@@ -87,11 +87,11 @@ replica_id:
 comm_r_16kib:
     echo '{"comm_c": "0x1b61f9fe67494de955c92d12e02f99ddea102124d1bfd86d1fcc0e64a961bb06", "comm_r_last": "0xdbcf53a5db1289511d3ce5e333a8bdba94e01c95ebf74645fe92c0ce12c84a1b"}'|RUST_LOG=trace cargo run --bin comm-r
 
-challenges_synth_2kib:
-    echo '{"comm_r": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "num_draw_challenges": 64, "num_generate_challenges": 64, "replica_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "sector_size": 2048, "seed": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00"}'|RUST_LOG=trace cargo run --bin challenges-synth
+challenges_synth_generate_16kib:
+    echo '{"comm_r": "0xb98d4681bc5b1c2692dadc24d32b02bbb4b3f82aae928d57d8d008c11ed7c646", "num_challenges": 512, "replica_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "sector_size": 16384}'|RUST_LOG=trace cargo run --bin challenges-synth-generate
 
-challenges_synth_32gib:
- echo '{"comm_r": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "num_draw_challenges": 262144, "num_generate_challenges": 1073741824, "replica_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "sector_size": 34359738368, "seed": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00"}'|RUST_LOG=trace cargo run --release --bin challenges-synth
+challenges_synth_generate_32gib:
+    jo -- -s comm_r=0x1b61f9fe67494de955c92d12e02f99ddea102124d1bfd86d1fcc0e64a961bb06 num_challenges=262144 -s replica_id=0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00 sector_size=34359738368 | RUST_LOG=trace /usr/bin/time -v cargo run --release --bin challenges-synth-generate
 
 commit_phase1_output_read_16kib:
     echo '{"commit_phase1_output_path": "/tmp/bins-16kib/commit-phase1-output.dat", "sector_size": 16384}' | RUST_LOG=trace cargo run --bin commit-phase1-output-read
