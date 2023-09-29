@@ -173,7 +173,7 @@ pub mod synthetic {
     pub const SYNTHETIC_POREP_VANILLA_PROOFS_EXT: &str = "dat";
 
     // Default synthetic challenge count for production sector sizes.
-    const DEFAULT_SYNTH_CHALLENGE_COUNT: usize = 1 << 18;
+    pub const DEFAULT_SYNTH_CHALLENGE_COUNT: usize = 1 << 18;
     const SYNTH_CHALLENGE_SIZE: usize = 32;
     const SYNTH_INDEX_SIZE: usize = 4;
     const CHACHA20_KEY_SIZE: usize = 32;
