@@ -26,12 +26,16 @@ use storage_proofs_porep::stacked::{
 
 /// Note that `comm_c`, `comm_d` and `comm_r_last` are not strictly needed as they could be read
 /// from the generated trees. Though they are passed in for sanity checking.
+/// `comm_r` could be derived from `comm_c` and `comm_r_last`, but as those are just passed in for
+/// sanity checking, keep `comm_r` as a parameter as it actually is used.
 #[derive(Debug, Deserialize, Serialize)]
 struct MerkleProofsSynthGenerateParameters {
     #[serde(with = "SerHex::<StrictPfx>")]
     comm_c: [u8; 32],
     #[serde(with = "SerHex::<StrictPfx>")]
     comm_d: [u8; 32],
+    #[serde(with = "SerHex::<StrictPfx>")]
+    comm_r: [u8; 32],
     #[serde(with = "SerHex::<StrictPfx>")]
     comm_r_last: [u8; 32],
     /// The directory where the trees are stored and the Synthetic PoReps file
@@ -114,6 +118,7 @@ fn new_temporary_aux<Tree: MerkleTreeTrait>(
 fn merkle_proofs<Tree: 'static + MerkleTreeTrait>(
     comm_c: [u8; 32],
     comm_d: [u8; 32],
+    comm_r: [u8; 32],
     comm_r_last: [u8; 32],
     data_dir: String,
     num_layers: usize,
@@ -127,9 +132,7 @@ fn merkle_proofs<Tree: 'static + MerkleTreeTrait>(
     let public_params = public_params(&porep_config)?;
     let tau = Tau {
         comm_d: comm_d.into(),
-        // `comm_r` is not used during merkle proof generation, hence we can set it to an
-        // arbitrary value.
-        comm_r: [1u8; 32].into(),
+        comm_r: comm_r.into(),
     };
     let public_inputs = PublicInputs {
         replica_id: replica_id.into(),
@@ -176,6 +179,7 @@ fn main() -> Result<()> {
         merkle_proofs,
         params.comm_c,
         params.comm_d,
+        params.comm_r,
         params.comm_r_last,
         params.data_dir,
         params.num_layers,
