@@ -180,6 +180,7 @@ impl<'a, Tree: 'static + MerkleTreeTrait, G: 'static + Hasher> StackedDrg<'a, Tr
     }
 
     #[allow(clippy::too_many_arguments)]
+    #[cfg_attr(feature = "tooling", visibility::make(pub))]
     fn prove_layers_generate(
         graph: &StackedBucketGraph<Tree::Hasher>,
         pub_inputs: &PublicInputs<<Tree::Hasher as Hasher>::Domain, <G as Hasher>::Domain>,

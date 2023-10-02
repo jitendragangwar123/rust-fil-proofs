@@ -1,33 +1,27 @@
 // Generates a file named `syn-porep-vanilla-proofs.dat` that contains all Synthetic PoRep proofs.
 // It's the basis to extract a subset of the proofs for the Commit Phase2.
 
-use std::{marker::PhantomData, path::PathBuf};
+use std::{fs::File, marker::PhantomData, path::PathBuf};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use fil_proofs_bin::cli;
 use filecoin_hashers::sha256::Sha256Hasher;
-use filecoin_proofs::{parameters::public_params, with_shape, DefaultPieceHasher, PoRepConfig};
+use filecoin_proofs::{with_shape, DefaultPieceHasher, DRG_DEGREE, EXP_DEGREE};
 use generic_array::typenum::Unsigned;
 use log::info;
 use merkletree::store::StoreConfig;
 use serde::{Deserialize, Serialize};
 use serde_hex::{SerHex, StrictPfx};
 use storage_proofs_core::{
-    api_version::{ApiFeature, ApiVersion},
-    cache_key::CacheKey,
-    merkle::MerkleTreeTrait,
-    proof::ProofScheme,
-    util::NODE_SIZE,
+    api_version::ApiVersion, cache_key::CacheKey, merkle::MerkleTreeTrait, util::NODE_SIZE,
 };
 use storage_proofs_porep::stacked::{
-    Labels, PersistentAux, PrivateInputs, PublicInputs, StackedDrg, Tau, TemporaryAux,
-    TemporaryAuxCache, BINARY_ARITY,
+    Labels, LayerChallenges, PublicInputs, StackedBucketGraph, StackedDrg, SynthProofs, Tau,
+    TemporaryAux, TemporaryAuxCache, BINARY_ARITY,
 };
 
-/// Note that `comm_c`, `comm_d` and `comm_r_last` are not strictly needed as they could be read
-/// from the generated trees. Though they are passed in for sanity checking.
-/// `comm_r` could be derived from `comm_c` and `comm_r_last`, but as those are just passed in for
-/// sanity checking, keep `comm_r` as a parameter as it actually is used.
+/// Note that `comm_c` and `comm_d` are not strictly needed as they could be read from the
+/// generated trees. Though they are passed in for sanity checking.
 #[derive(Debug, Deserialize, Serialize)]
 struct MerkleProofsSynthGenerateParameters {
     #[serde(with = "SerHex::<StrictPfx>")]
@@ -36,12 +30,11 @@ struct MerkleProofsSynthGenerateParameters {
     comm_d: [u8; 32],
     #[serde(with = "SerHex::<StrictPfx>")]
     comm_r: [u8; 32],
-    #[serde(with = "SerHex::<StrictPfx>")]
-    comm_r_last: [u8; 32],
-    /// The directory where the trees are stored and the Synthetic PoReps file
-    /// `syn-porep-vanilla-proofs.dat` will be stored.
-    data_dir: String,
+    /// The directory where the trees are stored.
+    input_dir: String,
     num_layers: usize,
+    /// The file where the generated synthetic merkle proofs are stored.
+    output_path: String,
     #[serde(with = "SerHex::<StrictPfx>")]
     porep_id: [u8; 32],
     #[serde(with = "SerHex::<StrictPfx>")]
@@ -119,17 +112,27 @@ fn merkle_proofs<Tree: 'static + MerkleTreeTrait>(
     comm_c: [u8; 32],
     comm_d: [u8; 32],
     comm_r: [u8; 32],
-    comm_r_last: [u8; 32],
-    data_dir: String,
+    input_dir: String,
     num_layers: usize,
+    output_path: String,
     porep_id: [u8; 32],
     replica_id: [u8; 32],
     replica_path: String,
     sector_size: u64,
 ) -> Result<()> {
-    let porep_config = PoRepConfig::new_groth16(sector_size, porep_id, ApiVersion::V1_2_0)
-        .with_feature(ApiFeature::SyntheticPoRep);
-    let public_params = public_params(&porep_config)?;
+    //let porep_config = PoRepConfig::new_groth16(sector_size, porep_id, ApiVersion::V1_2_0)
+    //    .with_feature(ApiFeature::SyntheticPoRep);
+    //let public_params: PublicParams<Tree> = public_params(&porep_config)?;
+
+    let sector_nodes = (sector_size as usize) / NODE_SIZE;
+    let graph = StackedBucketGraph::<Tree::Hasher>::new_stacked(
+        sector_nodes,
+        DRG_DEGREE,
+        EXP_DEGREE,
+        porep_id,
+        ApiVersion::V1_2_0,
+    )?;
+
     let tau = Tau {
         comm_d: comm_d.into(),
         comm_r: comm_r.into(),
@@ -142,28 +145,43 @@ fn merkle_proofs<Tree: 'static + MerkleTreeTrait>(
         // are generated.
         seed: None,
     };
-    let p_aux = PersistentAux {
-        comm_c: comm_c.into(),
-        comm_r_last: comm_r_last.into(),
-    };
     let t_aux = new_temporary_aux(
         sector_size as usize / NODE_SIZE,
         num_layers,
-        PathBuf::from(&data_dir),
+        PathBuf::from(&input_dir),
     );
     let t_aux_cache = TemporaryAuxCache::new(&t_aux, replica_path.into(), false)?;
-    let priv_inputs = PrivateInputs {
-        p_aux,
-        t_aux: t_aux_cache,
-    };
+    // NOTE vmx 2023-10-02: Synthetic PoRep defines its own number of challenges when the proofs
+    // are generated, hence the number of challenges in `LayerChallenges` is ignore. Therefore we
+    // don't pretend passing in a kind of matching value, but simply 0.
+    let challenges = LayerChallenges::new_synthetic(0);
 
-    let _all_partition_proofs = StackedDrg::<Tree, DefaultPieceHasher>::prove_all_partitions(
-        &public_params,
+    let synth_proofs = StackedDrg::<Tree, DefaultPieceHasher>::prove_layers_generate(
+        &graph,
         &public_inputs,
-        &priv_inputs,
+        comm_c.into(),
+        &t_aux_cache,
+        &challenges,
+        num_layers,
+        // Synthetic PoRep always has a single partition only.
         1,
     )
-    .expect("failed to generate partition proofs");
+    .context("failed to generate partition proofs")?
+    .pop()
+    .unwrap();
+
+    let file = File::create(&output_path).with_context(|| {
+        format!(
+            "failed to create synth-porep vanilla proofs file: {:?}",
+            output_path,
+        )
+    })?;
+    SynthProofs::write(file, &synth_proofs).with_context(|| {
+        format!(
+            "failed to write synth-porep vanilla proofs to file: {:?}",
+            output_path,
+        )
+    })?;
 
     Ok(())
 }
@@ -180,9 +198,9 @@ fn main() -> Result<()> {
         params.comm_c,
         params.comm_d,
         params.comm_r,
-        params.comm_r_last,
-        params.data_dir,
+        params.input_dir,
         params.num_layers,
+        params.output_path,
         params.porep_id,
         params.replica_id,
         params.replica_path,
