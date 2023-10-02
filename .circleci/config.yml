@@ -390,9 +390,12 @@ commands:
     steps:
       # Make sure we have different cache for Linux and Darwin.
       - run: uname > os.txt
+      - run:
+          name: List parameter cache
+          command: ls -l ${FIL_PROOFS_PARAMETER_CACHE}
       - save_cache:
           name: "Save parameter cache"
-          key: proof-params-v28-l-{{ checksum "os.txt" }}-{{ checksum "filecoin-proofs/parameters.json" }}
+          key: vmx-proof-params-v28-l-{{ checksum "os.txt" }}-{{ checksum "filecoin-proofs/parameters.json" }}
           paths:
             - "/tmp/paramcache.awesome"
             - "/tmp/filecoin-proof-parameters/"
@@ -402,7 +405,10 @@ commands:
       - run: uname > os.txt
       - restore_cache:
           name: "Restore parameter cache"
-          key: proof-params-v28-l-{{ checksum "os.txt" }}-{{ checksum "filecoin-proofs/parameters.json" }}
+          key: vmx-proof-params-v28-l-{{ checksum "os.txt" }}-{{ checksum "filecoin-proofs/parameters.json" }}
+      - run:
+          name: List parameter cache
+          command: ls -l ${FIL_PROOFS_PARAMETER_CACHE}
 
 workflows:
   version: 2.1
