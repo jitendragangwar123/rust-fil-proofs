@@ -392,7 +392,7 @@ commands:
       - run: uname > os.txt
       - run:
           name: List parameter cache
-          command: ls -l ${FIL_PROOFS_PARAMETER_CACHE}
+          command: ls -l ${FIL_PROOFS_PARAMETER_CACHE} || true
       - save_cache:
           name: "Save parameter cache"
           key: vmx-proof-params-v28-l-{{ checksum "os.txt" }}-{{ checksum "filecoin-proofs/parameters.json" }}
@@ -408,7 +408,7 @@ commands:
           key: vmx-proof-params-v28-l-{{ checksum "os.txt" }}-{{ checksum "filecoin-proofs/parameters.json" }}
       - run:
           name: List parameter cache
-          command: ls -l ${FIL_PROOFS_PARAMETER_CACHE}
+          command: ls -l ${FIL_PROOFS_PARAMETER_CACHE} || true
 
 workflows:
   version: 2.1
