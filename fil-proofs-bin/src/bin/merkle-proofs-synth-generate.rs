@@ -5,7 +5,7 @@ use std::{fs::File, marker::PhantomData, path::PathBuf};
 
 use anyhow::{Context, Result};
 use fil_proofs_bin::cli;
-use filecoin_hashers::sha256::Sha256Hasher;
+use filecoin_hashers::sha256::{Sha256Domain, Sha256Hasher};
 use filecoin_proofs::{with_shape, DefaultPieceHasher, DRG_DEGREE, EXP_DEGREE};
 use generic_array::typenum::Unsigned;
 use log::info;
@@ -13,7 +13,8 @@ use merkletree::store::StoreConfig;
 use serde::{Deserialize, Serialize};
 use serde_hex::{SerHex, StrictPfx};
 use storage_proofs_core::{
-    api_version::ApiVersion, cache_key::CacheKey, merkle::MerkleTreeTrait, util::NODE_SIZE,
+    api_version::ApiVersion, cache_key::CacheKey, drgraph::Graph, merkle::MerkleTreeTrait,
+    util::NODE_SIZE,
 };
 use storage_proofs_porep::stacked::{
     Labels, LayerChallenges, PublicInputs, StackedBucketGraph, StackedDrg, SynthProofs, Tau,
@@ -156,19 +157,21 @@ fn merkle_proofs<Tree: 'static + MerkleTreeTrait>(
     // don't pretend passing in a kind of matching value, but simply 0.
     let challenges = LayerChallenges::new_synthetic(0);
 
+    // Derive the set of challenges we are proving over.
+    let challenge_positions = challenges.derive_synthetic::<Sha256Domain>(
+        graph.size(),
+        &replica_id.into(),
+        &comm_r.into(),
+    );
     let synth_proofs = StackedDrg::<Tree, DefaultPieceHasher>::prove_layers_generate(
         &graph,
         &public_inputs,
         comm_c.into(),
         &t_aux_cache,
-        &challenges,
+        challenge_positions,
         num_layers,
-        // Synthetic PoRep always has a single partition only.
-        1,
     )
-    .context("failed to generate partition proofs")?
-    .pop()
-    .unwrap();
+    .context("failed to generate partition proofs")?;
 
     let file = File::create(&output_path).with_context(|| {
         format!(
