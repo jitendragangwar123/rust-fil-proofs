@@ -392,7 +392,7 @@ commands:
       - run: uname > os.txt
       - save_cache:
           name: "Save parameter cache"
-          key: proof-params-v28-m-{{ checksum "os.txt" }}-{{ checksum "filecoin-proofs/parameters.json" }}
+          key: vmx-proof-params-v28-m-{{ checksum "os.txt" }}-{{ checksum "filecoin-proofs/parameters.json" }}
           paths:
             - "/tmp/paramcache.awesome"
             - "/tmp/filecoin-proof-parameters/"
@@ -402,7 +402,7 @@ commands:
       - run: uname > os.txt
       - restore_cache:
           name: "Restore parameter cache"
-          key: proof-params-v28-m-{{ checksum "os.txt" }}-{{ checksum "filecoin-proofs/parameters.json" }}
+          key: vmx-proof-params-v28-m-{{ checksum "os.txt" }}-{{ checksum "filecoin-proofs/parameters.json" }}
 
 workflows:
   version: 2.1
