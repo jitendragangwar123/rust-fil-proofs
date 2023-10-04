@@ -289,7 +289,7 @@ jobs:
     macos:
       xcode: "13.4.1"
     working_directory: ~/crate
-    resource_class: large
+    resource_class: macos.m1.medium.gen1
     environment: *setup-env
     steps:
       - run:
