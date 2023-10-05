@@ -5,7 +5,7 @@ use std::{fs::File, marker::PhantomData, path::PathBuf};
 
 use anyhow::{Context, Result};
 use fil_proofs_bin::cli;
-use filecoin_hashers::sha256::{Sha256Domain, Sha256Hasher};
+use filecoin_hashers::sha256::Sha256Hasher;
 use filecoin_proofs::{with_shape, DefaultPieceHasher, DRG_DEGREE, EXP_DEGREE};
 use generic_array::typenum::Unsigned;
 use log::info;
@@ -13,18 +13,18 @@ use merkletree::store::StoreConfig;
 use serde::{Deserialize, Serialize};
 use serde_hex::{SerHex, StrictPfx};
 use storage_proofs_core::{
-    api_version::ApiVersion, cache_key::CacheKey, drgraph::Graph, merkle::MerkleTreeTrait,
-    util::NODE_SIZE,
+    api_version::ApiVersion, cache_key::CacheKey, merkle::MerkleTreeTrait, util::NODE_SIZE,
 };
 use storage_proofs_porep::stacked::{
-    Labels, LayerChallenges, PublicInputs, StackedBucketGraph, StackedDrg, SynthProofs, Tau,
-    TemporaryAux, TemporaryAuxCache, BINARY_ARITY,
+    Labels, PublicInputs, StackedBucketGraph, StackedDrg, SynthProofs, Tau, TemporaryAux,
+    TemporaryAuxCache, BINARY_ARITY,
 };
 
 /// Note that `comm_c` and `comm_d` are not strictly needed as they could be read from the
 /// generated trees. Though they are passed in for sanity checking.
 #[derive(Debug, Deserialize, Serialize)]
 struct MerkleProofsSynthGenerateParameters {
+    challenges: Vec<usize>,
     #[serde(with = "SerHex::<StrictPfx>")]
     comm_c: [u8; 32],
     #[serde(with = "SerHex::<StrictPfx>")]
@@ -110,6 +110,7 @@ fn new_temporary_aux<Tree: MerkleTreeTrait>(
 }
 
 fn merkle_proofs<Tree: 'static + MerkleTreeTrait>(
+    challenges: Vec<usize>,
     comm_c: [u8; 32],
     comm_d: [u8; 32],
     comm_r: [u8; 32],
@@ -152,23 +153,13 @@ fn merkle_proofs<Tree: 'static + MerkleTreeTrait>(
         PathBuf::from(&input_dir),
     );
     let t_aux_cache = TemporaryAuxCache::new(&t_aux, replica_path.into(), false)?;
-    // NOTE vmx 2023-10-02: Synthetic PoRep defines its own number of challenges when the proofs
-    // are generated, hence the number of challenges in `LayerChallenges` is ignore. Therefore we
-    // don't pretend passing in a kind of matching value, but simply 0.
-    let challenges = LayerChallenges::new_synthetic(0);
 
-    // Derive the set of challenges we are proving over.
-    let challenge_positions = challenges.derive_synthetic::<Sha256Domain>(
-        graph.size(),
-        &replica_id.into(),
-        &comm_r.into(),
-    );
     let synth_proofs = StackedDrg::<Tree, DefaultPieceHasher>::prove_layers_generate(
         &graph,
         &public_inputs,
         comm_c.into(),
         &t_aux_cache,
-        challenge_positions,
+        challenges,
         num_layers,
     )
     .context("failed to generate partition proofs")?;
@@ -198,6 +189,7 @@ fn main() -> Result<()> {
     with_shape!(
         params.sector_size,
         merkle_proofs,
+        params.challenges,
         params.comm_c,
         params.comm_d,
         params.comm_r,
