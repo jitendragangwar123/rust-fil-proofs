@@ -29,8 +29,6 @@ struct MerkleProofsSynthGenerateParameters {
     comm_c: [u8; 32],
     #[serde(with = "SerHex::<StrictPfx>")]
     comm_d: [u8; 32],
-    #[serde(with = "SerHex::<StrictPfx>")]
-    comm_r: [u8; 32],
     /// The directory where the trees are stored.
     input_dir: String,
     num_layers: usize,
@@ -45,8 +43,6 @@ struct MerkleProofsSynthGenerateParameters {
 }
 
 #[derive(Debug, Default, Deserialize, Serialize)]
-//struct MerkleProofsOutput<Tree: 'static + MerkleTreeTrait, G: Hasher> {
-//proofs: Vec<Vec<Proof<Tree, G>>>,
 struct MerkleProofsSynthGenerateOutput {
     // This is a hack to serialize a struct into an empty Object instead of null
     #[serde(skip_serializing)]
@@ -113,7 +109,6 @@ fn merkle_proofs<Tree: 'static + MerkleTreeTrait>(
     challenges: Vec<usize>,
     comm_c: [u8; 32],
     comm_d: [u8; 32],
-    comm_r: [u8; 32],
     input_dir: String,
     num_layers: usize,
     output_path: String,
@@ -122,10 +117,6 @@ fn merkle_proofs<Tree: 'static + MerkleTreeTrait>(
     replica_path: String,
     sector_size: u64,
 ) -> Result<()> {
-    //let porep_config = PoRepConfig::new_groth16(sector_size, porep_id, ApiVersion::V1_2_0)
-    //    .with_feature(ApiFeature::SyntheticPoRep);
-    //let public_params: PublicParams<Tree> = public_params(&porep_config)?;
-
     let sector_nodes = (sector_size as usize) / NODE_SIZE;
     let graph = StackedBucketGraph::<Tree::Hasher>::new_stacked(
         sector_nodes,
@@ -137,7 +128,9 @@ fn merkle_proofs<Tree: 'static + MerkleTreeTrait>(
 
     let tau = Tau {
         comm_d: comm_d.into(),
-        comm_r: comm_r.into(),
+        // `comm_r` is not used during merkle proof generation, hence we can set it to an
+        // arbitrary value.
+        comm_r: [1u8; 32].into(),
     };
     let public_inputs = PublicInputs {
         replica_id: replica_id.into(),
@@ -192,7 +185,6 @@ fn main() -> Result<()> {
         params.challenges,
         params.comm_c,
         params.comm_d,
-        params.comm_r,
         params.input_dir,
         params.num_layers,
         params.output_path,
