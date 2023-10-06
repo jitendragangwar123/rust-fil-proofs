@@ -78,14 +78,17 @@ encode_replica_16kib:
     echo '{"input_path": "/tmp/window-post-16KiB-dir/staged-file", "replica_path": "/tmp/sealed", "sector_key_path": "/tmp/window-post-16KiB-dir/sc-02-data-layer-2.dat"}'|RUST_LOG=trace cargo run --bin encode-replica
     b2sum /tmp/sealed /tmp/window-post-16KiB-dir/sealed-file
 
-challenges_2kib:
-    echo '{"num_challenges": 2, "partition": 0, "replica_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "sector_size": 2048, "seed": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00"}'|RUST_LOG=trace cargo run --bin challenges
-
 replica_id:
     echo '{"comm_d": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "porep_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "prover_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "sector_id": 12345678, "ticket": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00"}'|RUST_LOG=trace cargo run --bin replica-id
 
 comm_r_16kib:
     echo '{"comm_c": "0x1b61f9fe67494de955c92d12e02f99ddea102124d1bfd86d1fcc0e64a961bb06", "comm_r_last": "0xdbcf53a5db1289511d3ce5e333a8bdba94e01c95ebf74645fe92c0ce12c84a1b"}'|RUST_LOG=trace cargo run --bin comm-r
+
+challenges_16kib:
+    echo '{"num_challenges": 2, "num_partitions": 1, "replica_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "sector_size": 16384, "seed": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00"}'|RUST_LOG=trace cargo run --bin challenges
+
+challenges_32gib:
+    jo -- num_challenges=180 num_partitions=10 -s replica_id=0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00 sector_size=34359738368 -s seed=0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00 | RUST_LOG=trace cargo run --bin challenges
 
 challenges_synth_generate_16kib:
     echo '{"comm_r": "0xb98d4681bc5b1c2692dadc24d32b02bbb4b3f82aae928d57d8d008c11ed7c646", "num_challenges": 512, "replica_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "sector_size": 16384}'|RUST_LOG=trace cargo run --bin challenges-synth-generate

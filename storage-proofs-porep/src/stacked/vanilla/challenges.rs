@@ -64,6 +64,7 @@ impl LayerChallenges {
     }
 
     /// Returns the porep challenges for partition `k`.
+    #[cfg_attr(feature = "tooling", visibility::make(pub))]
     fn derive_porep<D: Domain>(
         &self,
         sector_nodes: usize,

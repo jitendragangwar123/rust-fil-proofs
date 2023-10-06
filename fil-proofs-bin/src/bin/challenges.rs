@@ -9,10 +9,10 @@ use storage_proofs_porep::stacked::LayerChallenges;
 
 #[derive(Debug, Deserialize, Serialize)]
 struct ChallengesParameters {
-    /// The number of challenges to create.
+    /// The total number of challenges to create.
     num_challenges: usize,
-    /// Which partition to create the challenges for.
-    partition: u8,
+    /// Total number of challenges.
+    num_partitions: usize,
     #[serde(with = "SerHex::<StrictPfx>")]
     replica_id: [u8; 32],
     /// Sector size is used to calculate the number of nodes.
@@ -32,20 +32,32 @@ fn main() -> Result<()> {
     let params: ChallengesParameters = cli::parse_stdin()?;
     info!("{:?}", params);
 
-    let leaves = usize::try_from(params.sector_size)
+    assert_eq!(
+        params.num_challenges % params.num_partitions,
+        0,
+        "Number of challenges must be divisible by the number of partitions"
+    );
+    let num_challenges = params.num_challenges / params.num_partitions;
+    let challenges = LayerChallenges::new(num_challenges);
+    let sector_nodes = usize::try_from(params.sector_size)
         .expect("sector size must be smaller than the default integer size on this platform")
         / NODE_SIZE;
-    let layer_challenges = LayerChallenges::new(params.num_challenges);
-    let challenges = layer_challenges.derive::<Sha256Domain>(
-        leaves,
-        &params.replica_id.into(),
-        // For normal PoRep this value isn't used, so we can put in an arbitrary value.
-        &[1u8; 32].into(),
-        &params.seed,
-        params.partition,
-    );
 
-    let output = ChallengesOutput { challenges };
+    let challenge_positions = (0..params.num_partitions)
+        .map(|k| {
+            challenges.derive_porep::<Sha256Domain>(
+                sector_nodes,
+                &params.replica_id.into(),
+                &params.seed,
+                k as u8,
+            )
+        })
+        .flatten()
+        .collect::<Vec<usize>>();
+
+    let output = ChallengesOutput {
+        challenges: challenge_positions,
+    };
     info!("{:?}", output);
     cli::print_stdout(output)?;
 
