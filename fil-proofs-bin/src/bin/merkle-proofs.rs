@@ -3,31 +3,29 @@ use std::{fs, marker::PhantomData, path::PathBuf};
 use anyhow::Result;
 use fil_proofs_bin::cli;
 use filecoin_hashers::sha256::Sha256Hasher;
-use filecoin_proofs::{parameters::public_params, with_shape, DefaultPieceHasher, PoRepConfig};
+use filecoin_proofs::{with_shape, DefaultPieceHasher, DRG_DEGREE, EXP_DEGREE};
 use generic_array::typenum::Unsigned;
 use log::info;
 use merkletree::store::StoreConfig;
 use serde::{Deserialize, Serialize};
 use serde_hex::{SerHex, StrictPfx};
 use storage_proofs_core::{
-    api_version::ApiVersion, cache_key::CacheKey, merkle::MerkleTreeTrait, proof::ProofScheme,
-    util::NODE_SIZE,
+    api_version::ApiVersion, cache_key::CacheKey, merkle::MerkleTreeTrait, util::NODE_SIZE,
 };
 use storage_proofs_porep::stacked::{
-    Labels, PersistentAux, PrivateInputs, PublicInputs, StackedDrg, SynthProofs, Tau, TemporaryAux,
+    Labels, PublicInputs, StackedBucketGraph, StackedDrg, SynthProofs, Tau, TemporaryAux,
     TemporaryAuxCache, BINARY_ARITY,
 };
 
-/// Note that `comm_c`, `comm_d` and `comm_r_last` are not strictly needed as they could be read
-/// from the generated trees. Though they are passed in for sanity checking.
+/// Note that `comm_c` and `comm_d` are not strictly needed as they could be read from the
+/// generated trees. Though they are passed in for sanity checking.
 #[derive(Debug, Deserialize, Serialize)]
 struct MerkleProofsParameters {
+    challenges: Vec<usize>,
     #[serde(with = "SerHex::<StrictPfx>")]
     comm_c: [u8; 32],
     #[serde(with = "SerHex::<StrictPfx>")]
     comm_d: [u8; 32],
-    #[serde(with = "SerHex::<StrictPfx>")]
-    comm_r_last: [u8; 32],
     /// The directory where the trees are stored.
     input_dir: String,
     num_layers: usize,
@@ -108,9 +106,9 @@ fn new_temporary_aux<Tree: MerkleTreeTrait>(
 }
 
 fn merkle_proofs<Tree: 'static + MerkleTreeTrait>(
+    challenges: Vec<usize>,
     comm_c: [u8; 32],
     comm_d: [u8; 32],
-    comm_r_last: [u8; 32],
     input_dir: String,
     num_layers: usize,
     num_partitions: usize,
@@ -120,8 +118,14 @@ fn merkle_proofs<Tree: 'static + MerkleTreeTrait>(
     sector_size: u64,
     seed: [u8; 32],
 ) -> Result<Vec<u8>> {
-    let porep_config = PoRepConfig::new_groth16(sector_size, porep_id, ApiVersion::V1_2_0);
-    let public_params = public_params(&porep_config)?;
+    let sector_nodes = (sector_size as usize) / NODE_SIZE;
+    let graph = StackedBucketGraph::<Tree::Hasher>::new_stacked(
+        sector_nodes,
+        DRG_DEGREE,
+        EXP_DEGREE,
+        porep_id,
+        ApiVersion::V1_2_0,
+    )?;
     let tau = Tau {
         comm_d: comm_d.into(),
         // `comm_r` is not used during merkle proof generation, hence we can set it to an
@@ -134,10 +138,6 @@ fn merkle_proofs<Tree: 'static + MerkleTreeTrait>(
         k: None,
         seed: Some(seed),
     };
-    let p_aux = PersistentAux {
-        comm_c: comm_c.into(),
-        comm_r_last: comm_r_last.into(),
-    };
     let t_aux = new_temporary_aux(
         sector_size as usize / NODE_SIZE,
         num_layers,
@@ -145,17 +145,21 @@ fn merkle_proofs<Tree: 'static + MerkleTreeTrait>(
     );
     let t_aux_cache = TemporaryAuxCache::new(&t_aux, replica_path.into(), false)
         .expect("failed to restore contents of t_aux");
-    let priv_inputs = PrivateInputs {
-        p_aux,
-        t_aux: t_aux_cache,
-    };
 
-    let all_partition_proofs = StackedDrg::<Tree, DefaultPieceHasher>::prove_all_partitions(
-        &public_params,
-        &public_inputs,
-        &priv_inputs,
-        num_partitions,
-    )?;
+    let num_challenges = challenges.len() / num_partitions;
+    let all_partition_proofs = challenges
+        .chunks_exact(num_challenges)
+        .map(|challenge_positions| {
+            StackedDrg::<Tree, DefaultPieceHasher>::prove_layers_generate(
+                &graph,
+                &public_inputs,
+                comm_c.into(),
+                &t_aux_cache,
+                challenge_positions.to_vec(),
+                num_layers,
+            )
+        })
+        .collect::<Result<Vec<_>, _>>()?;
 
     // For serialization we pretend that all proofs are in a single partition.
     let proofs_single_partition = all_partition_proofs
@@ -178,9 +182,9 @@ fn main() -> Result<()> {
     let proofs = with_shape!(
         params.sector_size,
         merkle_proofs,
+        params.challenges,
         params.comm_c,
         params.comm_d,
-        params.comm_r_last,
         params.input_dir,
         params.num_layers,
         params.num_partitions,
