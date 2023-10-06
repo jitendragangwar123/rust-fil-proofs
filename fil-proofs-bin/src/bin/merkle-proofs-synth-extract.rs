@@ -4,27 +4,20 @@ use std::fs::{self, File};
 
 use anyhow::{Context, Result};
 use fil_proofs_bin::cli;
-use filecoin_hashers::{poseidon::PoseidonHasher, sha256::Sha256Domain};
+use filecoin_hashers::poseidon::PoseidonHasher;
 use filecoin_proofs::{with_shape, DefaultPieceHasher};
 use log::info;
 use serde::{Deserialize, Serialize};
-use serde_hex::{SerHex, StrictPfx};
 use storage_proofs_core::{merkle::MerkleTreeTrait, util::NODE_SIZE};
-use storage_proofs_porep::stacked::{LayerChallenges, SynthProofs};
+use storage_proofs_porep::stacked::SynthProofs;
 
 #[derive(Debug, Deserialize, Serialize)]
 struct MerkleProofsSynthExtractParameters {
-    #[serde(with = "SerHex::<StrictPfx>")]
-    comm_r: [u8; 32],
-    num_challenges: usize,
+    challenges: Vec<usize>,
     num_layers: usize,
     /// The path to the file the proofs should be stored into.
     output_path: String,
-    #[serde(with = "SerHex::<StrictPfx>")]
-    replica_id: [u8; 32],
     sector_size: u64,
-    #[serde(with = "SerHex::<StrictPfx>")]
-    seed: [u8; 32],
     synth_proofs_path: String,
 }
 
@@ -36,25 +29,11 @@ struct MerkleProofsSynthExtractOutput {
 }
 
 fn merkle_proofs<Tree: 'static + MerkleTreeTrait<Hasher = PoseidonHasher>>(
-    comm_r: [u8; 32],
-    num_challenges: usize,
+    challenges: Vec<usize>,
     num_layers: usize,
-    replica_id: [u8; 32],
     sector_size: u64,
-    seed: [u8; 32],
     synth_proofs_path: String,
 ) -> Result<Vec<u8>> {
-    let challenges = LayerChallenges::new_synthetic(num_challenges);
-    let sector_nodes = (sector_size as usize) / NODE_SIZE;
-
-    let synth_indexes = challenges.derive_synth_indexes::<Sha256Domain>(
-        sector_nodes,
-        &replica_id.into(),
-        &comm_r.into(),
-        &seed,
-        0,
-    );
-
     let mut file = File::open(&synth_proofs_path).with_context(|| {
         format!(
             "failed to open synthetic vanilla proofs file: {:?}",
@@ -62,11 +41,12 @@ fn merkle_proofs<Tree: 'static + MerkleTreeTrait<Hasher = PoseidonHasher>>(
         )
     })?;
 
+    let sector_nodes = (sector_size as usize) / NODE_SIZE;
     let proofs = SynthProofs::read::<Tree, DefaultPieceHasher, _>(
         &mut file,
         sector_nodes,
         num_layers,
-        synth_indexes.into_iter(),
+        challenges.into_iter(),
     )
     .with_context(|| {
         format!(
@@ -90,12 +70,9 @@ fn main() -> Result<()> {
     let proofs = with_shape!(
         params.sector_size,
         merkle_proofs,
-        params.comm_r,
-        params.num_challenges,
+        params.challenges,
         params.num_layers,
-        params.replica_id,
         params.sector_size,
-        params.seed,
         params.synth_proofs_path,
     )?;
 
