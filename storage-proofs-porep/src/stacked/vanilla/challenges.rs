@@ -88,6 +88,32 @@ impl LayerChallenges {
             .collect()
     }
 
+    pub(crate) fn derive_porep_ni<D: Domain>(
+        &self,
+        sector_nodes: usize,
+        replica_id: &D,
+        comm_r: &D,
+        k: u8,
+    ) -> Vec<usize> {
+        let hash_init = Sha256::new()
+            .chain_update(replica_id.into_bytes())
+            .chain_update(comm_r);
+        let partition_challenge_count = self.challenges_count_all();
+        (0..partition_challenge_count)
+            .map(|i| {
+                let j: u32 = ((partition_challenge_count * k as usize) + i) as u32;
+
+                let hash = hash_init
+                    .clone()
+                    .chain_update(j.to_le_bytes())
+                    .finalize();
+
+                let bigint = BigUint::from_bytes_le(hash.as_ref());
+                bigint_to_challenge(bigint, sector_nodes)
+            })
+            .collect()
+    }
+
     /// Returns the porep challenges for partition `k` taken from the synthetic challenges.
     fn derive_porep_synth<D: Domain>(
         &self,
