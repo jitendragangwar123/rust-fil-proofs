@@ -192,6 +192,9 @@ impl<'a, Tree: 'static + MerkleTreeTrait, G: 'static + Hasher> StackedDrg<'a, Tr
                     })
                 }
             }
+            Challenges::Ni(_ni_challenges) => {
+                todo!("vmx 2023-10-31: ni porep")
+            }
         }
     }
 
