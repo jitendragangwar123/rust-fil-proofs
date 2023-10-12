@@ -51,7 +51,7 @@ pub struct SetupParams {
 
     pub porep_id: [u8; 32],
     pub challenges: LayerChallenges,
-    pub layers: usize,
+    pub num_layers: usize,
     pub api_version: ApiVersion,
     pub api_features: Vec<ApiFeature>,
 }
@@ -63,7 +63,7 @@ where
 {
     pub graph: StackedBucketGraph<Tree::Hasher>,
     pub challenges: LayerChallenges,
-    pub layers: usize,
+    pub num_layers: usize,
     _t: PhantomData<Tree>,
 }
 
@@ -75,7 +75,7 @@ where
         Self {
             graph: self.graph.clone(),
             challenges: self.challenges.clone(),
-            layers: self.layers,
+            num_layers: self.num_layers,
             _t: Default::default(),
         }
     }
@@ -88,12 +88,12 @@ where
     pub fn new(
         graph: StackedBucketGraph<Tree::Hasher>,
         challenges: LayerChallenges,
-        layers: usize,
+        num_layers: usize,
     ) -> Self {
         PublicParams {
             graph,
             challenges,
-            layers,
+            num_layers,
             _t: PhantomData,
         }
     }
@@ -103,11 +103,13 @@ impl<Tree> ParameterSetMetadata for PublicParams<Tree>
 where
     Tree: MerkleTreeTrait,
 {
+    // This identifier is used for the hash value of the parameters file name, the output string
+    // must stay the same at all times, else the filename parameters will be wrong.
     fn identifier(&self) -> String {
         format!(
             "layered_drgporep::PublicParams{{ graph: {}, challenges: LayerChallenges {{ layers: {}, max_count: {} }} tree: {} }}",
             self.graph.identifier(),
-            self.layers,
+            self.num_layers,
             self.challenges.challenges_count_all(),
             Tree::display()
         )
@@ -123,7 +125,7 @@ where
     Tree: MerkleTreeTrait,
 {
     fn from(other: &PublicParams<Tree>) -> PublicParams<Tree> {
-        PublicParams::new(other.graph.clone(), other.challenges.clone(), other.layers)
+        PublicParams::new(other.graph.clone(), other.challenges.clone(), other.num_layers)
     }
 }
 
@@ -271,7 +273,7 @@ impl<Tree: MerkleTreeTrait, G: Hasher> Proof<Tree, G> {
 
         check!(self.verify_final_replica_layer(challenge));
 
-        check!(self.verify_labels(replica_id, pub_params.layers));
+        check!(self.verify_labels(replica_id, pub_params.num_layers));
 
         trace!("verify encoding");
 
@@ -285,9 +287,9 @@ impl<Tree: MerkleTreeTrait, G: Hasher> Proof<Tree, G> {
     }
 
     /// Verify all labels.
-    fn verify_labels(&self, replica_id: &<Tree::Hasher as Hasher>::Domain, layers: usize) -> bool {
+    fn verify_labels(&self, replica_id: &<Tree::Hasher as Hasher>::Domain, num_layers: usize) -> bool {
         // Verify Labels Layer 1..layers
-        for layer in 1..=layers {
+        for layer in 1..=num_layers {
             trace!("verify labeling (layer: {})", layer,);
 
             check!(self.labeling_proofs.get(layer - 1).is_some());

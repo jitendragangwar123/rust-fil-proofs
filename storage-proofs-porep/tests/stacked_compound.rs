@@ -50,7 +50,7 @@ fn test_stacked_compound<Tree: 'static + MerkleTreeTrait>() {
 
     let degree = BASE_DEGREE;
     let expansion_degree = EXP_DEGREE;
-    let layers = 2;
+    let num_layers = 2;
     let challenges = LayerChallenges::new(1);
     let partition_count = 1;
 
@@ -69,7 +69,7 @@ fn test_stacked_compound<Tree: 'static + MerkleTreeTrait>() {
             expansion_degree,
             porep_id: arbitrary_porep_id,
             challenges,
-            layers,
+            num_layers,
             api_version: ApiVersion::V1_1_0,
             api_features: vec![],
         },

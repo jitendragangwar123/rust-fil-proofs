@@ -109,7 +109,7 @@ fn test_extract_all<Tree: 'static + MerkleTreeTrait>() {
         expansion_degree: EXP_DEGREE,
         porep_id: [32; 32],
         challenges,
-        layers: DEFAULT_STACKED_LAYERS,
+        num_layers: DEFAULT_STACKED_LAYERS,
         api_version: ApiVersion::V1_2_0,
         api_features: vec![],
     };
@@ -155,7 +155,7 @@ fn test_extract_all<Tree: 'static + MerkleTreeTrait>() {
 
     StackedDrg::<Tree, Blake2sHasher>::extract_and_invert_transform_layers(
         &pp.graph,
-        pp.layers,
+        pp.num_layers,
         &replica_id,
         mmapped_data.as_mut(),
         config,
@@ -205,7 +205,7 @@ fn test_stacked_porep_resume_seal() {
         expansion_degree: EXP_DEGREE,
         porep_id: [32; 32],
         challenges,
-        layers: DEFAULT_STACKED_LAYERS,
+        num_layers: DEFAULT_STACKED_LAYERS,
         api_version: ApiVersion::V1_2_0,
         api_features: vec![],
     };
@@ -272,7 +272,7 @@ fn test_stacked_porep_resume_seal() {
 
     StackedDrg::<Tree, Blake2sHasher>::extract_and_invert_transform_layers(
         &pp.graph,
-        pp.layers,
+        pp.num_layers,
         &replica_id,
         mmapped_data1.as_mut(),
         config,
@@ -353,7 +353,7 @@ fn test_prove_verify<Tree: 'static + MerkleTreeTrait>(n: usize, challenges: Laye
         expansion_degree,
         porep_id: arbitrary_porep_id,
         challenges,
-        layers: DEFAULT_STACKED_LAYERS,
+        num_layers: DEFAULT_STACKED_LAYERS,
         api_version: ApiVersion::V1_2_0,
         api_features: vec![],
     };
@@ -421,14 +421,14 @@ fn test_stacked_porep_setup_terminates() {
     let expansion_degree = EXP_DEGREE;
     let nodes = 1024 * 1024 * 32 * 8; // This corresponds to 8GiB sectors (32-byte nodes)
     let challenges = LayerChallenges::new(333);
-    let layers = 10;
+    let num_layers = 10;
     let sp = SetupParams {
         nodes,
         degree,
         expansion_degree,
         porep_id: [32; 32],
         challenges,
-        layers,
+        num_layers,
         api_version: ApiVersion::V1_2_0,
         api_features: vec![],
     };
@@ -441,7 +441,7 @@ fn test_stacked_porep_setup_terminates() {
 
 #[test]
 fn test_stacked_porep_generate_labels() {
-    let layers = 11;
+    let num_layers = 11;
     let nodes_2k = 1 << 11;
     let nodes_4k = 1 << 12;
     let replica_id = [9u8; 32];
@@ -449,7 +449,7 @@ fn test_stacked_porep_generate_labels() {
     let porep_id = [123; 32];
     test_generate_labels_aux(
         nodes_2k,
-        layers,
+        num_layers,
         replica_id,
         legacy_porep_id,
         ApiVersion::V1_0_0,
@@ -464,7 +464,7 @@ fn test_stacked_porep_generate_labels() {
 
     test_generate_labels_aux(
         nodes_4k,
-        layers,
+        num_layers,
         replica_id,
         legacy_porep_id,
         ApiVersion::V1_0_0,
@@ -479,7 +479,7 @@ fn test_stacked_porep_generate_labels() {
 
     test_generate_labels_aux(
         nodes_2k,
-        layers,
+        num_layers,
         replica_id,
         porep_id,
         ApiVersion::V1_1_0,
@@ -494,7 +494,7 @@ fn test_stacked_porep_generate_labels() {
 
     test_generate_labels_aux(
         nodes_4k,
-        layers,
+        num_layers,
         replica_id,
         porep_id,
         ApiVersion::V1_1_0,
@@ -509,7 +509,7 @@ fn test_stacked_porep_generate_labels() {
 
     test_generate_labels_aux(
         nodes_2k,
-        layers,
+        num_layers,
         replica_id,
         porep_id,
         ApiVersion::V1_2_0,
@@ -524,7 +524,7 @@ fn test_stacked_porep_generate_labels() {
 
     test_generate_labels_aux(
         nodes_4k,
-        layers,
+        num_layers,
         replica_id,
         porep_id,
         ApiVersion::V1_2_0,
@@ -540,7 +540,7 @@ fn test_stacked_porep_generate_labels() {
 
 fn test_generate_labels_aux(
     sector_size: usize,
-    layers: usize,
+    num_layers: usize,
     replica_id: [u8; 32],
     porep_id: [u8; 32],
     api_version: ApiVersion,
@@ -572,7 +572,7 @@ fn test_generate_labels_aux(
         Sha256Hasher,
     >::generate_labels_for_decoding(
         &graph,
-        layers,
+        num_layers,
         &<PoseidonHasher as Hasher>::Domain::try_from_bytes(&replica_id).unwrap(),
         config,
     )

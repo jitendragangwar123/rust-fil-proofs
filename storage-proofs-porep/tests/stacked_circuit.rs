@@ -53,7 +53,7 @@ fn test_stacked_porep_circuit<Tree: MerkleTreeTrait + 'static>(
     let nodes = 8 * get_base_tree_count::<Tree>();
     let degree = BASE_DEGREE;
     let expansion_degree = EXP_DEGREE;
-    let layers = 2;
+    let num_layers = 2;
     let challenges = LayerChallenges::new(1);
 
     let mut rng = XorShiftRng::from_seed(TEST_SEED);
@@ -78,7 +78,7 @@ fn test_stacked_porep_circuit<Tree: MerkleTreeTrait + 'static>(
         expansion_degree,
         porep_id: arbitrary_porep_id,
         challenges,
-        layers,
+        num_layers,
         api_version: ApiVersion::V1_1_0,
         api_features: vec![],
     };

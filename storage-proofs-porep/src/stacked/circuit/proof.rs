@@ -168,7 +168,7 @@ impl<'a, Tree: MerkleTreeTrait, G: Hasher> Circuit<Fr> for StackedCircuit<'a, Tr
         for (i, proof) in proofs.into_iter().enumerate() {
             proof.synthesize(
                 &mut cs.namespace(|| format!("challenge_{}", i)),
-                public_params.layers,
+                public_params.num_layers,
                 &comm_d_num,
                 &comm_c_num,
                 &comm_r_last_num,

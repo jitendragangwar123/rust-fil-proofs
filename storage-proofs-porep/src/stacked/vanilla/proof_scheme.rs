@@ -32,7 +32,7 @@ impl<'a, 'c, Tree: 'static + MerkleTreeTrait, G: 'static + Hasher> ProofScheme<'
             sp.api_version,
         )?;
 
-        Ok(PublicParams::new(graph, sp.challenges.clone(), sp.layers))
+        Ok(PublicParams::new(graph, sp.challenges.clone(), sp.num_layers))
     }
 
     fn prove<'b>(
@@ -68,7 +68,7 @@ impl<'a, 'c, Tree: 'static + MerkleTreeTrait, G: 'static + Hasher> ProofScheme<'
             &priv_inputs.p_aux,
             &priv_inputs.t_aux,
             &pub_params.challenges,
-            pub_params.layers,
+            pub_params.num_layers,
             partition_count,
         )
     }

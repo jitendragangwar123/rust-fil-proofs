@@ -363,7 +363,7 @@ where
 
     StackedDrg::<Tree, DefaultPieceHasher>::extract_and_invert_transform_layers(
         &pp.graph,
-        pp.layers,
+        pp.num_layers,
         &replica_id,
         data,
         config,

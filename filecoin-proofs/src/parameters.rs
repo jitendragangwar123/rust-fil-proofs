@@ -75,7 +75,7 @@ pub fn setup_params(porep_config: &PoRepConfig) -> Result<stacked::SetupParams> 
         POREP_MINIMUM_CHALLENGES.from_sector_size(u64::from(sector_bytes)),
         use_synthetic,
     );
-    let layers = *LAYERS
+    let num_layers = *LAYERS
         .read()
         .expect("LAYERS poisoned")
         .get(&u64::from(sector_bytes))
@@ -98,7 +98,7 @@ pub fn setup_params(porep_config: &PoRepConfig) -> Result<stacked::SetupParams> 
         expansion_degree,
         porep_id: porep_config.porep_id,
         challenges,
-        layers,
+        num_layers,
         api_version: porep_config.api_version,
         api_features: porep_config.api_features.clone(),
     })

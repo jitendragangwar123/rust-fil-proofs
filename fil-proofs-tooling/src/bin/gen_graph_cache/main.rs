@@ -34,7 +34,7 @@ fn gen_graph_cache<Tree: 'static + MerkleTreeTrait>(
 
     // Note that layers and challenge_count don't affect the graph, so
     // we just use dummy values of 1 for the setup params.
-    let layers = 1;
+    let num_layers = 1;
     let challenge_count = 1;
     let challenges = LayerChallenges::new(challenge_count);
 
@@ -44,7 +44,7 @@ fn gen_graph_cache<Tree: 'static + MerkleTreeTrait>(
         expansion_degree: EXP_DEGREE,
         porep_id,
         challenges,
-        layers,
+        num_layers,
         api_version,
         api_features: vec![],
     };
