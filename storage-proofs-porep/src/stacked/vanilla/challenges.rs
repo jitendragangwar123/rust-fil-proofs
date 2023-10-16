@@ -1,7 +1,6 @@
 use blstrs::Scalar as Fr;
 use log::trace;
 use num_bigint::BigUint;
-use serde::{Deserialize, Serialize};
 
 use filecoin_hashers::Domain;
 use sha2::{Digest, Sha256};
@@ -14,67 +13,23 @@ fn bigint_to_challenge(bigint: BigUint, sector_nodes: usize) -> usize {
     non_zero_node.to_u32_digits()[0] as usize
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct LayerChallenges {
-    /// The maximum count of challenges
-    max_count: usize,
-    pub use_synthetic: bool,
+#[derive(Clone, Debug)]
+pub struct InteractivePoRep {
+    challenges_per_partition: usize,
 }
 
-impl LayerChallenges {
-    pub const fn new(max_count: usize) -> Self {
-        LayerChallenges {
-            max_count,
-            use_synthetic: false,
-        }
-    }
-
-    pub const fn new_synthetic(max_count: usize) -> Self {
-        LayerChallenges {
-            max_count,
-            use_synthetic: true,
-        }
-    }
-
-    /// Porep challenge count per partition.
-    pub fn challenges_count_all(&self) -> usize {
-        self.max_count
-    }
-
+impl InteractivePoRep {
     /// Returns the porep challenges for partition `k`.
     pub fn derive<D: Domain>(
         &self,
         sector_nodes: usize,
         replica_id: &D,
-        comm_r: &D,
         seed: &[u8; 32],
         k: u8,
     ) -> Vec<usize> {
-        assert!(sector_nodes > 2, "Too few sector_nodes: {}", sector_nodes);
-        if self.use_synthetic {
-            trace!(
-                "deriving porep challenges from synthetic challenges (k = {})",
-                k,
-            );
-            self.derive_porep_synth(sector_nodes, replica_id, comm_r, seed, k)
-        } else {
-            trace!("deriving porep challenges (k = {})", k);
-            self.derive_porep(sector_nodes, replica_id, seed, k)
-        }
-    }
-
-    /// Returns the porep challenges for partition `k`.
-    fn derive_porep<D: Domain>(
-        &self,
-        sector_nodes: usize,
-        replica_id: &D,
-        seed: &[u8; 32],
-        k: u8,
-    ) -> Vec<usize> {
-        let partition_challenge_count = self.challenges_count_all();
-        (0..partition_challenge_count)
+        (0..self.challenges_per_partition)
             .map(|i| {
-                let j: u32 = ((partition_challenge_count * k as usize) + i) as u32;
+                let j: u32 = ((self.challenges_per_partition * k as usize) + i) as u32;
 
                 let hash = Sha256::new()
                     .chain_update(replica_id.into_bytes())
@@ -87,8 +42,78 @@ impl LayerChallenges {
             })
             .collect()
     }
+}
 
-    pub(crate) fn derive_porep_ni<D: Domain>(
+#[derive(Clone, Debug)]
+pub struct SynthPoRep {
+    challenges_per_partition: usize,
+}
+
+impl SynthPoRep {
+    /// Returns the porep challenges for partition `k` taken from the synthetic challenges.
+    pub fn derive<D: Domain>(
+        &self,
+        sector_nodes: usize,
+        replica_id: &D,
+        comm_r: &D,
+        seed: &[u8; 32],
+        k: u8,
+    ) -> Vec<usize> {
+        let replica_id: Fr = (*replica_id).into();
+        let comm_r: Fr = (*comm_r).into();
+        SynthChallenges::default(sector_nodes, &replica_id, &comm_r).gen_porep_partition_challenges(
+            self.challenges_per_partition,
+            seed,
+            k as usize,
+        )
+    }
+
+    /// Returns the synthetic challenge indexes of the porep challenges for partition `k`.
+    pub fn derive_indexes<D: Domain>(
+        &self,
+        sector_nodes: usize,
+        replica_id: &D,
+        comm_r: &D,
+        seed: &[u8; 32],
+        k: u8,
+    ) -> Vec<usize> {
+        trace!(
+            "generating porep partition synthetic challenge indexes (k = {})",
+            k,
+        );
+        let replica_id: Fr = (*replica_id).into();
+        let comm_r: Fr = (*comm_r).into();
+        SynthChallenges::default(sector_nodes, &replica_id, &comm_r).gen_partition_synth_indexes(
+            self.challenges_per_partition,
+            seed,
+            k as usize,
+        )
+    }
+
+    /// Returns the entire synthetic challenge set.
+    pub fn derive_synthetic<D: Domain>(
+        sector_nodes: usize,
+        replica_id: &D,
+        comm_r: &D,
+    ) -> Vec<usize> {
+        let replica_id: Fr = (*replica_id).into();
+        let comm_r: Fr = (*comm_r).into();
+        let synth = SynthChallenges::default(sector_nodes, &replica_id, &comm_r);
+        trace!(
+            "generating entire synthetic challenge set (num_synth_challenges = {})",
+            synth.num_synth_challenges,
+        );
+        synth.collect()
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct NiPoRep {
+    challenges_per_partition: usize,
+}
+
+impl NiPoRep {
+    pub fn derive<D: Domain>(
         &self,
         sector_nodes: usize,
         replica_id: &D,
@@ -98,82 +123,55 @@ impl LayerChallenges {
         let hash_init = Sha256::new()
             .chain_update(replica_id.into_bytes())
             .chain_update(comm_r);
-        let partition_challenge_count = self.challenges_count_all();
-        (0..partition_challenge_count)
+        (0..self.challenges_per_partition)
             .map(|i| {
-                let j: u32 = ((partition_challenge_count * k as usize) + i) as u32;
+                let j: u32 = ((self.challenges_per_partition * k as usize) + i) as u32;
 
-                let hash = hash_init
-                    .clone()
-                    .chain_update(j.to_le_bytes())
-                    .finalize();
+                let hash = hash_init.clone().chain_update(j.to_le_bytes()).finalize();
 
                 let bigint = BigUint::from_bytes_le(hash.as_ref());
                 bigint_to_challenge(bigint, sector_nodes)
             })
             .collect()
     }
+}
 
-    /// Returns the porep challenges for partition `k` taken from the synthetic challenges.
-    fn derive_porep_synth<D: Domain>(
-        &self,
-        sector_nodes: usize,
-        replica_id: &D,
-        comm_r: &D,
-        seed: &[u8; 32],
-        k: u8,
-    ) -> Vec<usize> {
-        assert!(self.use_synthetic);
-        let partition_challenge_count = self.challenges_count_all();
-        let replica_id: Fr = (*replica_id).into();
-        let comm_r: Fr = (*comm_r).into();
-        SynthChallenges::default(sector_nodes, &replica_id, &comm_r).gen_porep_partition_challenges(
-            partition_challenge_count,
-            seed,
-            k as usize,
-        )
+#[derive(Clone, Debug)]
+pub enum Challenges {
+    Interactive(InteractivePoRep),
+    Synth(SynthPoRep),
+    Ni(NiPoRep),
+}
+
+impl Challenges {
+    pub const fn new_interactive(challenges_per_partition: usize) -> Self {
+        Self::Interactive(InteractivePoRep {
+            challenges_per_partition,
+        })
+    }
+    pub const fn new_synthetic(challenges_per_partition: usize) -> Self {
+        Self::Synth(SynthPoRep {
+            challenges_per_partition,
+        })
+    }
+    pub const fn new_non_interactive(challenges_per_partition: usize) -> Self {
+        Self::Ni(NiPoRep {
+            challenges_per_partition,
+        })
     }
 
-    /// Returns the synthetic challenge indexes of the porep challenges for partition `k`.
-    pub fn derive_synth_indexes<D: Domain>(
-        &self,
-        sector_nodes: usize,
-        replica_id: &D,
-        comm_r: &D,
-        seed: &[u8; 32],
-        k: u8,
-    ) -> Vec<usize> {
-        assert!(self.use_synthetic, "synth-porep is disabled");
-        trace!(
-            "generating porep partition synthetic challenge indexes (k = {})",
-            k,
-        );
-        let partition_challenge_count = self.challenges_count_all();
-        let replica_id: Fr = (*replica_id).into();
-        let comm_r: Fr = (*comm_r).into();
-        SynthChallenges::default(sector_nodes, &replica_id, &comm_r).gen_partition_synth_indexes(
-            partition_challenge_count,
-            seed,
-            k as usize,
-        )
-    }
-
-    /// Returns the entire synthetic challenge set.
-    pub fn derive_synthetic<D: Domain>(
-        &self,
-        sector_nodes: usize,
-        replica_id: &D,
-        comm_r: &D,
-    ) -> Vec<usize> {
-        assert!(self.use_synthetic);
-        let replica_id: Fr = (*replica_id).into();
-        let comm_r: Fr = (*comm_r).into();
-        let synth = SynthChallenges::default(sector_nodes, &replica_id, &comm_r);
-        trace!(
-            "generating entire synthetic challenge set (num_synth_challenges = {})",
-            synth.num_synth_challenges,
-        );
-        synth.collect()
+    pub fn num_challenges_per_partition(&self) -> usize {
+        match self {
+            Self::Interactive(InteractivePoRep {
+                challenges_per_partition,
+            })
+            | Self::Synth(SynthPoRep {
+                challenges_per_partition,
+            })
+            | Self::Ni(NiPoRep {
+                challenges_per_partition,
+            }) => *challenges_per_partition,
+        }
     }
 }
 
@@ -389,10 +387,10 @@ mod test {
 
     #[test]
     fn test_calculate_fixed_challenges() {
-        let layer_challenges = LayerChallenges::new(333);
+        let layer_challenges = Challenges::new_interactive(333);
         let expected = 333;
 
-        let calculated_count = layer_challenges.challenges_count_all();
+        let calculated_count = layer_challenges.num_challenges_per_partition();
         assert_eq!(expected as usize, calculated_count);
     }
 
@@ -401,7 +399,9 @@ mod test {
         let n = 200;
         let layers = 100;
 
-        let challenges = LayerChallenges::new(n);
+        let challenges = InteractivePoRep {
+            challenges_per_partition: n,
+        };
         let leaves = 1 << 30;
         let rng = &mut thread_rng();
         let replica_id: Sha256Domain = Sha256Domain::random(rng);
@@ -414,7 +414,7 @@ mod test {
         for _layer in 1..=layers {
             let mut histogram = HashMap::new();
             for k in 0..partitions {
-                let challenges = challenges.derive_porep(leaves, &replica_id, &seed, k as u8);
+                let challenges = challenges.derive(leaves, &replica_id, &seed, k as u8);
 
                 for challenge in challenges {
                     let counter = histogram.entry(challenge).or_insert(0);
@@ -448,11 +448,16 @@ mod test {
         let total_challenges = n * partitions;
 
         for _layer in 1..=layers {
-            let one_partition_challenges =
-                LayerChallenges::new(total_challenges).derive_porep(leaves, &replica_id, &seed, 0);
+            let one_partition_challenges = InteractivePoRep {
+                challenges_per_partition: total_challenges,
+            }
+            .derive(leaves, &replica_id, &seed, 0);
             let many_partition_challenges = (0..partitions)
                 .flat_map(|k| {
-                    LayerChallenges::new(n).derive_porep(leaves, &replica_id, &seed, k as u8)
+                    InteractivePoRep {
+                        challenges_per_partition: n,
+                    }
+                    .derive(leaves, &replica_id, &seed, k as u8)
                 })
                 .collect::<Vec<_>>();
 
