@@ -123,7 +123,9 @@ pub fn create_replicas<Tree: 'static + MerkleTreeTrait>(
 
     let mut porep_config = PoRepConfig::new_groth16(u64::from(sector_size), porep_id, api_version);
     for feature in api_features {
-        porep_config.enable_feature(feature);
+        porep_config
+            .enable_feature(feature)
+            .unwrap_or_else(|_| panic!("failed to enable feature {:?}", feature));
     }
 
     let mut out: Vec<(SectorId, PreCommitReplicaOutput<Tree>)> = Default::default();

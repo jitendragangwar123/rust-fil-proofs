@@ -114,6 +114,8 @@ fn select_challenges(
     let challenges = div_ceil(minimum_total_challenges, partitions);
     if features.contains(&ApiFeature::SyntheticPoRep) {
         Challenges::new_synthetic(challenges)
+    } else if features.contains(&ApiFeature::NonInteractivePoRep) {
+        Challenges::new_non_interactive(challenges)
     } else {
         Challenges::new_interactive(challenges)
     }

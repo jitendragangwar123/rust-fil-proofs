@@ -67,6 +67,16 @@ pub const fn get_porep_interactive_partitions(sector_size: u64) -> u8 {
     }
 }
 
+/// Returns the number of partitions for non-interactive PoRep for a certain sector size.
+pub const fn get_porep_non_interactive_partitions(sector_size: u64) -> u8 {
+    match sector_size {
+        SECTOR_SIZE_2_KIB | SECTOR_SIZE_4_KIB | SECTOR_SIZE_16_KIB | SECTOR_SIZE_32_KIB
+        | SECTOR_SIZE_8_MIB | SECTOR_SIZE_16_MIB | SECTOR_SIZE_512_MIB | SECTOR_SIZE_1_GIB => 2,
+        SECTOR_SIZE_32_GIB | SECTOR_SIZE_64_GIB => 79,
+        _ => panic!("invalid sector size"),
+    }
+}
+
 /// Returns the number of layers for a certain sector size.
 pub const fn get_layers(sector_size: u64) -> usize {
     match sector_size {

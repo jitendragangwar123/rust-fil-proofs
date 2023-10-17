@@ -1,6 +1,6 @@
 use std::{collections::HashSet, path::PathBuf};
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use storage_proofs_core::{
     api_version::{ApiFeature, ApiVersion},
     merkle::MerkleTreeTrait,
@@ -60,6 +60,7 @@ impl PoRepConfig {
     pub fn new_groth16(sector_size: u64, porep_id: [u8; 32], api_version: ApiVersion) -> Self {
         Self {
             sector_size: SectorSize(sector_size),
+            // By default, use the number of partitions for the interactive PoRep.
             partitions: PoRepProofPartitions(constants::get_porep_interactive_partitions(
                 sector_size,
             )),
@@ -70,8 +71,32 @@ impl PoRepConfig {
     }
 
     #[inline]
-    pub fn enable_feature(&mut self, feat: ApiFeature) {
+    pub fn enable_feature(&mut self, feat: ApiFeature) -> Result<()> {
+        match feat {
+            ApiFeature::SyntheticPoRep => {
+                if self.feature_enabled(ApiFeature::NonInteractivePoRep) {
+                    return Err(anyhow!(
+                            "Cannot enable Synthetic PoRep when Non-interactive PoRep is already enabled"));
+                }
+
+                self.partitions = PoRepProofPartitions(
+                    constants::get_porep_interactive_partitions(self.sector_size.into()),
+                );
+            }
+            ApiFeature::NonInteractivePoRep => {
+                if self.feature_enabled(ApiFeature::SyntheticPoRep) {
+                    return Err(anyhow!(
+                            "Cannot enable Non-interactive PoRep when Synthetic PoRep is already enabled"));
+                }
+
+                self.partitions = PoRepProofPartitions(
+                    constants::get_porep_non_interactive_partitions(self.sector_size.into()),
+                );
+            }
+        }
+
         self.api_features.insert(feat);
+        Ok(())
     }
 
     #[inline]
