@@ -28,8 +28,7 @@ use filecoin_proofs::{
     SealPreCommitOutput, SealPreCommitPhase1Output, SectorShape16KiB, SectorShape2KiB,
     SectorShape32KiB, SectorShape4KiB, SectorUpdateConfig, UnpaddedByteIndex, UnpaddedBytesAmount,
     SECTOR_SIZE_16_KIB, SECTOR_SIZE_2_KIB, SECTOR_SIZE_32_KIB, SECTOR_SIZE_4_KIB,
-    WINDOW_POST_CHALLENGE_COUNT, WINDOW_POST_SECTOR_COUNT, WINNING_POST_CHALLENGE_COUNT,
-    WINNING_POST_SECTOR_COUNT,
+    WINDOW_POST_CHALLENGE_COUNT, WINNING_POST_CHALLENGE_COUNT, WINNING_POST_SECTOR_COUNT,
 };
 use fr32::bytes_into_fr;
 use log::info;
@@ -49,7 +48,7 @@ use storage_proofs_core::{
 use storage_proofs_update::constants::TreeRHasher;
 use tempfile::{tempdir, NamedTempFile, TempDir};
 
-use filecoin_proofs::constants::MAX_LEGACY_REGISTERED_SEAL_PROOF_ID;
+use filecoin_proofs::constants::{self, MAX_LEGACY_REGISTERED_SEAL_PROOF_ID};
 
 #[cfg(feature = "big-tests")]
 use filecoin_proofs::{
@@ -1024,11 +1023,7 @@ fn winning_post<Tree: 'static + MerkleTreeTrait>(
 #[ignore]
 fn test_window_post_single_partition_smaller_2kib_base_8() -> Result<()> {
     let sector_size = SECTOR_SIZE_2_KIB;
-    let sector_count = *WINDOW_POST_SECTOR_COUNT
-        .read()
-        .expect("WINDOW_POST_SECTOR_COUNT poisoned")
-        .get(&sector_size)
-        .expect("unknown sector size");
+    let sector_count = constants::get_window_post_sector_count(sector_size);
 
     let versions = vec![ApiVersion::V1_0_0, ApiVersion::V1_1_0, ApiVersion::V1_2_0];
     for version in versions {
@@ -1049,11 +1044,7 @@ fn test_window_post_single_partition_smaller_2kib_base_8() -> Result<()> {
 #[ignore]
 fn test_window_post_two_partitions_matching_2kib_base_8() -> Result<()> {
     let sector_size = SECTOR_SIZE_2_KIB;
-    let sector_count = *WINDOW_POST_SECTOR_COUNT
-        .read()
-        .expect("WINDOW_POST_SECTOR_COUNT poisoned")
-        .get(&sector_size)
-        .expect("unknown sector size");
+    let sector_count = constants::get_window_post_sector_count(sector_size);
 
     let versions = vec![ApiVersion::V1_0_0, ApiVersion::V1_1_0, ApiVersion::V1_2_0];
     for version in versions {
@@ -1074,11 +1065,7 @@ fn test_window_post_two_partitions_matching_2kib_base_8() -> Result<()> {
 #[ignore]
 fn test_window_post_two_partitions_matching_4kib_sub_8_2() -> Result<()> {
     let sector_size = SECTOR_SIZE_4_KIB;
-    let sector_count = *WINDOW_POST_SECTOR_COUNT
-        .read()
-        .expect("WINDOW_POST_SECTOR_COUNT poisoned")
-        .get(&sector_size)
-        .expect("unknown sector size");
+    let sector_count = constants::get_window_post_sector_count(sector_size);
 
     let versions = vec![ApiVersion::V1_0_0, ApiVersion::V1_1_0, ApiVersion::V1_2_0];
     for version in versions {
@@ -1099,11 +1086,7 @@ fn test_window_post_two_partitions_matching_4kib_sub_8_2() -> Result<()> {
 #[ignore]
 fn test_window_post_two_partitions_matching_16kib_sub_8_8() -> Result<()> {
     let sector_size = SECTOR_SIZE_16_KIB;
-    let sector_count = *WINDOW_POST_SECTOR_COUNT
-        .read()
-        .expect("WINDOW_POST_SECTOR_COUNT poisoned")
-        .get(&sector_size)
-        .expect("unknown sector size");
+    let sector_count = constants::get_window_post_sector_count(sector_size);
 
     let versions = vec![ApiVersion::V1_0_0, ApiVersion::V1_1_0, ApiVersion::V1_2_0];
     for version in versions {
@@ -1130,11 +1113,7 @@ fn test_window_post_two_partitions_matching_16kib_sub_8_8() -> Result<()> {
 #[ignore]
 fn test_window_post_two_partitions_matching_32kib_top_8_8_2() -> Result<()> {
     let sector_size = SECTOR_SIZE_32_KIB;
-    let sector_count = *WINDOW_POST_SECTOR_COUNT
-        .read()
-        .expect("WINDOW_POST_SECTOR_COUNT poisoned")
-        .get(&sector_size)
-        .expect("unknown sector size");
+    let sector_count = constants::get_window_post_sector_count(sector_size);
 
     let versions = vec![ApiVersion::V1_0_0, ApiVersion::V1_1_0, ApiVersion::V1_2_0];
     for version in versions {
@@ -1161,11 +1140,7 @@ fn test_window_post_two_partitions_matching_32kib_top_8_8_2() -> Result<()> {
 #[ignore]
 fn test_window_post_two_partitions_smaller_2kib_base_8() -> Result<()> {
     let sector_size = SECTOR_SIZE_2_KIB;
-    let sector_count = *WINDOW_POST_SECTOR_COUNT
-        .read()
-        .expect("WINDOW_POST_SECTOR_COUNT poisoned")
-        .get(&sector_size)
-        .expect("unknown sector size");
+    let sector_count = constants::get_window_post_sector_count(sector_size);
 
     let versions = vec![ApiVersion::V1_0_0, ApiVersion::V1_1_0, ApiVersion::V1_2_0];
     for version in versions {
@@ -1192,11 +1167,7 @@ fn test_window_post_two_partitions_smaller_2kib_base_8() -> Result<()> {
 #[ignore]
 fn test_window_post_single_partition_matching_2kib_base_8() -> Result<()> {
     let sector_size = SECTOR_SIZE_2_KIB;
-    let sector_count = *WINDOW_POST_SECTOR_COUNT
-        .read()
-        .expect("WINDOW_POST_SECTOR_COUNT poisoned")
-        .get(&sector_size)
-        .expect("unknown sector size");
+    let sector_count = constants::get_window_post_sector_count(sector_size);
 
     let versions = vec![ApiVersion::V1_0_0, ApiVersion::V1_1_0, ApiVersion::V1_2_0];
     for version in versions {
@@ -1210,11 +1181,7 @@ fn test_window_post_single_partition_matching_2kib_base_8() -> Result<()> {
 #[test]
 fn test_window_post_partition_matching_2kib_base_8() -> Result<()> {
     let sector_size = SECTOR_SIZE_2_KIB;
-    let sector_count = *WINDOW_POST_SECTOR_COUNT
-        .read()
-        .expect("WINDOW_POST_SECTOR_COUNT poisoned")
-        .get(&sector_size)
-        .expect("unknown sector size");
+    let sector_count = constants::get_window_post_sector_count(sector_size);
 
     let versions = vec![ApiVersion::V1_0_0, ApiVersion::V1_1_0, ApiVersion::V1_2_0];
     for version in versions {

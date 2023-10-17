@@ -4,7 +4,7 @@ use std::io::stdout;
 
 use fil_proofs_tooling::shared::{create_replica, PROVER_ID, RANDOMNESS};
 use fil_proofs_tooling::{measure, Metadata};
-use filecoin_proofs::constants::{WINDOW_POST_CHALLENGE_COUNT, WINDOW_POST_SECTOR_COUNT};
+use filecoin_proofs::constants::{self, WINDOW_POST_CHALLENGE_COUNT};
 use filecoin_proofs::types::{PoStConfig, SectorSize};
 use filecoin_proofs::{
     generate_window_post, verify_window_post, with_shape, PoStType, PrivateReplicaInfo,
@@ -56,11 +56,7 @@ pub fn run_window_post_bench<Tree: 'static + MerkleTreeTrait>(
     api_features: Vec<ApiFeature>,
 ) -> anyhow::Result<()> {
     let arbitrary_porep_id = [66; 32];
-    let sector_count = *WINDOW_POST_SECTOR_COUNT
-        .read()
-        .expect("WINDOW_POST_SECTOR_COUNT poisoned")
-        .get(&sector_size)
-        .expect("unknown sector size");
+    let sector_count = constants::get_window_post_sector_count(sector_size);
 
     let (sector_id, replica_output) = create_replica::<Tree>(
         sector_size,

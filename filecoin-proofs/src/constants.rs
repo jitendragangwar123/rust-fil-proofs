@@ -1,5 +1,5 @@
+use std::collections::HashMap;
 use std::sync::RwLock;
-use std::{collections::HashMap, sync::RwLockWriteGuard};
 
 pub use storage_proofs_core::drgraph::BASE_DEGREE as DRG_DEGREE;
 pub use storage_proofs_porep::stacked::EXP_DEGREE;
@@ -47,47 +47,57 @@ pub const PUBLISHED_SECTOR_SIZES: [u64; 10] = [
     SECTOR_SIZE_64_GIB,
 ];
 
-pub struct PorepMinimumChallenges(RwLock<HashMap<u64, usize>>);
-impl PorepMinimumChallenges {
-    fn new() -> Self {
-        Self(RwLock::new(
-            [
-                (SECTOR_SIZE_2_KIB, 2),
-                (SECTOR_SIZE_4_KIB, 2),
-                (SECTOR_SIZE_16_KIB, 2),
-                (SECTOR_SIZE_32_KIB, 2),
-                (SECTOR_SIZE_8_MIB, 2),
-                (SECTOR_SIZE_16_MIB, 2),
-                (SECTOR_SIZE_512_MIB, 2),
-                (SECTOR_SIZE_1_GIB, 2),
-                (SECTOR_SIZE_32_GIB, 176),
-                (SECTOR_SIZE_64_GIB, 176),
-            ]
-            .iter()
-            .copied()
-            .collect(),
-        ))
-    }
-
-    pub fn get_mut(&self) -> RwLockWriteGuard<'_, HashMap<u64, usize>> {
-        self.0.write().expect("POREP_MINIMUM_CHALLENGES poisoned")
-    }
-
-    pub fn from_sector_size(&self, sector_size: u64) -> usize {
-        match self
-            .0
-            .read()
-            .expect("POREP_MINIMUM_CHALLENGES poisoned")
-            .get(&sector_size)
-        {
-            Some(c) => *c,
-            None => panic!("invalid sector size"),
-        }
+/// Returns the minimum number of challenges used for a certain sector size.
+pub(crate) const fn get_porep_interactive_minimum_challenges(sector_size: u64) -> usize {
+    match sector_size {
+        SECTOR_SIZE_2_KIB | SECTOR_SIZE_4_KIB | SECTOR_SIZE_16_KIB | SECTOR_SIZE_32_KIB
+        | SECTOR_SIZE_8_MIB | SECTOR_SIZE_16_MIB | SECTOR_SIZE_512_MIB | SECTOR_SIZE_1_GIB => 2,
+        SECTOR_SIZE_32_GIB | SECTOR_SIZE_64_GIB => 176,
+        _ => panic!("invalid sector size"),
     }
 }
 
+/// Returns the number of partitions for a certain sector size.
+pub const fn get_porep_interactive_partitions(sector_size: u64) -> u8 {
+    match sector_size {
+        SECTOR_SIZE_2_KIB | SECTOR_SIZE_4_KIB | SECTOR_SIZE_16_KIB | SECTOR_SIZE_32_KIB
+        | SECTOR_SIZE_8_MIB | SECTOR_SIZE_16_MIB | SECTOR_SIZE_512_MIB | SECTOR_SIZE_1_GIB => 1,
+        SECTOR_SIZE_32_GIB | SECTOR_SIZE_64_GIB => 10,
+        _ => panic!("invalid sector size"),
+    }
+}
+
+/// Returns the number of layers for a certain sector size.
+pub const fn get_layers(sector_size: u64) -> usize {
+    match sector_size {
+        SECTOR_SIZE_2_KIB | SECTOR_SIZE_4_KIB | SECTOR_SIZE_16_KIB | SECTOR_SIZE_32_KIB
+        | SECTOR_SIZE_8_MIB | SECTOR_SIZE_16_MIB | SECTOR_SIZE_512_MIB | SECTOR_SIZE_1_GIB => 2,
+        SECTOR_SIZE_32_GIB | SECTOR_SIZE_64_GIB => 11,
+        _ => panic!("invalid sector size"),
+    }
+}
+
+/// Returns the number of layers for a certain sector size.
+///
+/// These numbers must match those used for Window PoSt scheduling in the miner actor.
+/// Please coordinate changes with actor code.
+/// https://github.com/filecoin-project/specs-actors/blob/master/actors/abi/sector.go
+pub const fn get_window_post_sector_count(sector_size: u64) -> usize {
+    match sector_size {
+        SECTOR_SIZE_2_KIB | SECTOR_SIZE_4_KIB | SECTOR_SIZE_16_KIB | SECTOR_SIZE_32_KIB
+        | SECTOR_SIZE_8_MIB | SECTOR_SIZE_16_MIB | SECTOR_SIZE_512_MIB | SECTOR_SIZE_1_GIB => 2,
+        // this gives 125,279,217 constraints, fitting in a single partition
+        SECTOR_SIZE_32_GIB => 2349,
+        // this gives 129,887,900 constraints, fitting in a single partition
+        SECTOR_SIZE_64_GIB => 2300,
+        _ => panic!("invalid sector size"),
+    }
+}
+
+// NOTE vmx 2023-10-17: Those constants are deprecated, use the functions above instead. The
+// constants are only kept, so that filecoin-proofs-api can still be compiled without any changes.
+// They cane be removed, once filecoin-api-proofs are upgraded to this version.
 lazy_static! {
-    pub static ref POREP_MINIMUM_CHALLENGES: PorepMinimumChallenges = PorepMinimumChallenges::new();
     pub static ref POREP_PARTITIONS: RwLock<HashMap<u64, u8>> = RwLock::new(
         [
             (SECTOR_SIZE_2_KIB, 1),

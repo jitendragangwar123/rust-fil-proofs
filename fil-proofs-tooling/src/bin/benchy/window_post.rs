@@ -9,7 +9,7 @@ use bincode::{deserialize, serialize};
 use fil_proofs_tooling::measure::FuncMeasurement;
 use fil_proofs_tooling::shared::{PROVER_ID, RANDOMNESS, TICKET_BYTES};
 use fil_proofs_tooling::{measure, Metadata};
-use filecoin_proofs::constants::{WINDOW_POST_CHALLENGE_COUNT, WINDOW_POST_SECTOR_COUNT};
+use filecoin_proofs::constants::{self, WINDOW_POST_CHALLENGE_COUNT};
 use filecoin_proofs::types::{
     PaddedBytesAmount, PieceInfo, PoRepConfig, PoStConfig, SealCommitPhase1Output,
     SealPreCommitOutput, SealPreCommitPhase1Output, SectorSize, UnpaddedBytesAmount,
@@ -524,11 +524,7 @@ pub fn run_window_post_bench<Tree: 'static + MerkleTreeTrait>(
     let post_config = PoStConfig {
         sector_size: SectorSize(sector_size),
         challenge_count: WINDOW_POST_CHALLENGE_COUNT,
-        sector_count: *WINDOW_POST_SECTOR_COUNT
-            .read()
-            .expect("WINDOW_POST_SECTOR_COUNT poisoned")
-            .get(&sector_size)
-            .expect("unknown sector size"),
+        sector_count: constants::get_window_post_sector_count(sector_size),
         typ: PoStType::Window,
         priority: true,
         api_version,

@@ -12,11 +12,11 @@ use storage_proofs_core::{
 use storage_proofs_porep::stacked::{StackedCircuit, StackedCompound};
 
 use crate::{
-    constants::DefaultPieceHasher,
+    constants::{self, DefaultPieceHasher},
     parameters::public_params,
     types::{PaddedBytesAmount, PoRepProofPartitions, SectorSize, UnpaddedBytesAmount},
-    POREP_PARTITIONS,
 };
+// This is only public due to the use in some tooling.
 
 #[derive(Clone, Debug)]
 pub struct PoRepConfig {
@@ -60,13 +60,9 @@ impl PoRepConfig {
     pub fn new_groth16(sector_size: u64, porep_id: [u8; 32], api_version: ApiVersion) -> Self {
         Self {
             sector_size: SectorSize(sector_size),
-            partitions: PoRepProofPartitions(
-                *POREP_PARTITIONS
-                    .read()
-                    .expect("POREP_PARTITIONS poisoned")
-                    .get(&sector_size)
-                    .expect("unknown sector size"),
-            ),
+            partitions: PoRepProofPartitions(constants::get_porep_interactive_partitions(
+                sector_size,
+            )),
             porep_id,
             api_version,
             api_features: vec![],

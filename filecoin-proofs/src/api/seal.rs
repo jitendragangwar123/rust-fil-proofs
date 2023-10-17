@@ -36,7 +36,6 @@ use storage_proofs_porep::stacked::{
 use storage_proofs_update::vanilla::prepare_tree_r_data;
 use typenum::{Unsigned, U11, U2};
 
-use crate::POREP_MINIMUM_CHALLENGES;
 use crate::{
     api::{as_safe_commitment, commitment_from_fr, get_base_tree_leafs, get_base_tree_size},
     caches::{
@@ -44,7 +43,7 @@ use crate::{
         get_stacked_verifying_key,
     },
     constants::{
-        DefaultBinaryTree, DefaultPieceDomain, DefaultPieceHasher, SINGLE_PARTITION_PROOF_LEN,
+        self, DefaultBinaryTree, DefaultPieceDomain, DefaultPieceHasher, SINGLE_PARTITION_PROOF_LEN,
     },
     parameters::setup_params,
     pieces::{self, verify_pieces},
@@ -1052,8 +1051,9 @@ pub fn verify_seal<Tree: 'static + MerkleTreeTrait>(
             &public_inputs,
             &proof,
             &ChallengeRequirements {
-                minimum_challenges: POREP_MINIMUM_CHALLENGES
-                    .from_sector_size(u64::from(porep_config.sector_size)),
+                minimum_challenges: constants::get_porep_interactive_minimum_challenges(u64::from(
+                    porep_config.sector_size,
+                )),
             },
         )
     };
@@ -1167,8 +1167,9 @@ pub fn verify_batch_seal<Tree: 'static + MerkleTreeTrait>(
         &public_inputs,
         &proofs,
         &ChallengeRequirements {
-            minimum_challenges: POREP_MINIMUM_CHALLENGES
-                .from_sector_size(u64::from(porep_config.sector_size)),
+            minimum_challenges: constants::get_porep_interactive_minimum_challenges(u64::from(
+                porep_config.sector_size,
+            )),
         },
     )
     .map_err(Into::into);

@@ -4,10 +4,11 @@ use bellperson::{util_cs::bench_cs::BenchCS, Circuit};
 use blstrs::Scalar as Fr;
 use dialoguer::{theme::ColorfulTheme, MultiSelect};
 use filecoin_proofs::{
+    constants,
     parameters::{public_params, window_post_public_params, winning_post_public_params},
     with_shape, DefaultPieceHasher, PoRepConfig, PoRepProofPartitions, PoStConfig, PoStType,
-    SectorSize, POREP_PARTITIONS, PUBLISHED_SECTOR_SIZES, WINDOW_POST_CHALLENGE_COUNT,
-    WINDOW_POST_SECTOR_COUNT, WINNING_POST_CHALLENGE_COUNT, WINNING_POST_SECTOR_COUNT,
+    SectorSize, PUBLISHED_SECTOR_SIZES, WINDOW_POST_CHALLENGE_COUNT, WINNING_POST_CHALLENGE_COUNT,
+    WINNING_POST_SECTOR_COUNT,
 };
 use humansize::{file_size_opts, FileSize};
 use log::{info, warn};
@@ -114,11 +115,7 @@ fn window_post_info(sector_size: u64, api_version: ApiVersion) -> CircuitInfo {
         &PoStConfig {
             sector_size: SectorSize(sector_size),
             challenge_count: WINDOW_POST_CHALLENGE_COUNT,
-            sector_count: *WINDOW_POST_SECTOR_COUNT
-                .read()
-                .expect("WINDOW_POST_SECTOR_COUNT poisoned")
-                .get(&sector_size)
-                .expect("unknown sector size"),
+            sector_count: constants::get_window_post_sector_count(sector_size),
             typ: PoStType::Window,
             priority: true,
             api_version,
@@ -127,13 +124,7 @@ fn window_post_info(sector_size: u64, api_version: ApiVersion) -> CircuitInfo {
 }
 
 fn porep_info(sector_size: u64, api_version: ApiVersion) -> (CircuitInfo, usize) {
-    let partitions = PoRepProofPartitions(
-        *POREP_PARTITIONS
-            .read()
-            .expect("POREP_PARTITIONS poisoned")
-            .get(&sector_size)
-            .expect("unknown sector size"),
-    );
+    let partitions = PoRepProofPartitions(constants::get_porep_interactive_partitions(sector_size));
     let info = with_shape!(
         sector_size,
         get_porep_info,

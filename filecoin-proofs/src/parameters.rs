@@ -4,9 +4,8 @@ use storage_proofs_porep::stacked::{self, Challenges, StackedDrg};
 use storage_proofs_post::fallback::{self, FallbackPoSt};
 
 use crate::{
-    constants::{DefaultPieceHasher, DRG_DEGREE, EXP_DEGREE, LAYERS},
+    constants::{self, DefaultPieceHasher, DRG_DEGREE, EXP_DEGREE},
     types::{MerkleTreeTrait, PoRepConfig, PoStConfig},
-    POREP_MINIMUM_CHALLENGES,
 };
 
 type WinningPostSetupParams = fallback::SetupParams;
@@ -71,15 +70,11 @@ pub fn setup_params(porep_config: &PoRepConfig) -> Result<stacked::SetupParams> 
     let sector_bytes = porep_config.padded_bytes_amount();
     let challenges = select_challenges(
         usize::from(porep_config.partitions),
-        POREP_MINIMUM_CHALLENGES.from_sector_size(u64::from(sector_bytes)),
+        constants::get_porep_interactive_minimum_challenges(u64::from(sector_bytes)),
         &porep_config.api_features,
     );
-    let num_layers = *LAYERS
-        .read()
-        .expect("LAYERS poisoned")
-        .get(&u64::from(sector_bytes))
-        .expect("unknown sector size");
     let sector_bytes = u64::from(sector_bytes);
+    let num_layers = constants::get_layers(sector_bytes);
 
     ensure!(
         sector_bytes % 32 == 0,

@@ -5,8 +5,8 @@ use std::str::FromStr;
 use dialoguer::{theme::ColorfulTheme, MultiSelect};
 use filecoin_proofs::{
     constants::{
-        DefaultPieceHasher, PUBLISHED_SECTOR_SIZES, WINDOW_POST_CHALLENGE_COUNT,
-        WINDOW_POST_SECTOR_COUNT, WINNING_POST_CHALLENGE_COUNT, WINNING_POST_SECTOR_COUNT,
+        self, DefaultPieceHasher, PUBLISHED_SECTOR_SIZES, WINDOW_POST_CHALLENGE_COUNT,
+        WINNING_POST_CHALLENGE_COUNT, WINNING_POST_SECTOR_COUNT,
     },
     parameters::{public_params, window_post_public_params, winning_post_public_params},
     types::{PoRepConfig, PoStConfig, SectorSize},
@@ -192,11 +192,7 @@ fn generate_params_post(sector_size: u64, api_version: ApiVersion) {
         &PoStConfig {
             sector_size: SectorSize(sector_size),
             challenge_count: WINDOW_POST_CHALLENGE_COUNT,
-            sector_count: *WINDOW_POST_SECTOR_COUNT
-                .read()
-                .expect("WINDOW_POST_SECTOR_COUNT poisoned")
-                .get(&sector_size)
-                .expect("unknown sector size"),
+            sector_count: constants::get_window_post_sector_count(sector_size),
             typ: PoStType::Window,
             priority: true,
             api_version,
