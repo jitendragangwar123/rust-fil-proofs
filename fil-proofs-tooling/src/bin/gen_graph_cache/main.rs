@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::fs::File;
 use std::io::BufWriter;
 use std::path::Path;
@@ -46,7 +46,7 @@ fn gen_graph_cache<Tree: 'static + MerkleTreeTrait>(
         challenges,
         num_layers,
         api_version,
-        api_features: vec![],
+        api_features: HashSet::new(),
     };
 
     let pp = StackedDrg::<Tree, Sha256Hasher>::setup(&sp).expect("failed to setup DRG");

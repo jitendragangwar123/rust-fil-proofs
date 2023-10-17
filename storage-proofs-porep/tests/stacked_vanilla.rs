@@ -1,4 +1,4 @@
-use std::fs::remove_file;
+use std::{collections::HashSet, fs::remove_file};
 
 use blstrs::Scalar as Fr;
 use ff::{Field, PrimeField};
@@ -111,7 +111,7 @@ fn test_extract_all<Tree: 'static + MerkleTreeTrait>() {
         challenges,
         num_layers: DEFAULT_STACKED_LAYERS,
         api_version: ApiVersion::V1_2_0,
-        api_features: vec![],
+        api_features: HashSet::new(),
     };
 
     let pp = StackedDrg::<Tree, Blake2sHasher>::setup(&sp).expect("setup failed");
@@ -207,7 +207,7 @@ fn test_stacked_porep_resume_seal() {
         challenges,
         num_layers: DEFAULT_STACKED_LAYERS,
         api_version: ApiVersion::V1_2_0,
-        api_features: vec![],
+        api_features: HashSet::new(),
     };
 
     let pp = StackedDrg::<Tree, Blake2sHasher>::setup(&sp).expect("setup failed");
@@ -355,7 +355,7 @@ fn test_prove_verify<Tree: 'static + MerkleTreeTrait>(n: usize, challenges: Chal
         challenges,
         num_layers: DEFAULT_STACKED_LAYERS,
         api_version: ApiVersion::V1_2_0,
-        api_features: vec![],
+        api_features: HashSet::new(),
     };
 
     let pp = StackedDrg::<Tree, Blake2sHasher>::setup(&sp).expect("setup failed");
@@ -427,7 +427,7 @@ fn test_stacked_porep_setup_terminates() {
         challenges,
         num_layers,
         api_version: ApiVersion::V1_2_0,
-        api_features: vec![],
+        api_features: HashSet::new(),
     };
 
     // When this fails, the call to setup should panic, but seems to actually hang (i.e. neither return nor panic) for some reason.

@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use bellperson::{
     util_cs::{metric_cs::MetricCS, test_cs::TestConstraintSystem},
     Circuit, ConstraintSystem,
@@ -80,7 +82,7 @@ fn test_stacked_porep_circuit<Tree: MerkleTreeTrait + 'static>(
         challenges,
         num_layers,
         api_version: ApiVersion::V1_1_0,
-        api_features: vec![],
+        api_features: HashSet::new(),
     };
 
     let pp = StackedDrg::<Tree, Sha256Hasher>::setup(&sp).expect("setup failed");

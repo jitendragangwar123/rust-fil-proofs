@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::iter;
 use std::marker::PhantomData;
@@ -52,7 +53,7 @@ pub struct SetupParams {
     pub challenges: Challenges,
     pub num_layers: usize,
     pub api_version: ApiVersion,
-    pub api_features: Vec<ApiFeature>,
+    pub api_features: HashSet<ApiFeature>,
 }
 
 #[derive(Debug)]
@@ -1235,6 +1236,8 @@ pub fn generate_replica_id<H: Hasher, T: AsRef<[u8]>>(
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use filecoin_hashers::{poseidon::PoseidonHasher, sha256::Sha256Hasher};
     use generic_array::typenum::{U0, U2, U8};
     use storage_proofs_core::{
@@ -1258,7 +1261,7 @@ mod tests {
             challenges: Challenges::new_interactive(18),
             num_layers: 11,
             api_version: ApiVersion::V1_1_0,
-            api_features: vec![],
+            api_features: HashSet::new(),
         };
         let public_params_32gib =
             StackedDrg::<OctTree32Gib, Sha256Hasher>::setup(&setup_params_32gib)
@@ -1274,7 +1277,7 @@ mod tests {
             challenges: Challenges::new_interactive(18),
             num_layers: 11,
             api_version: ApiVersion::V1_1_0,
-            api_features: vec![],
+            api_features: HashSet::new(),
         };
         let public_params_64gib =
             StackedDrg::<OctTree64Gib, Sha256Hasher>::setup(&setup_params_64gib)

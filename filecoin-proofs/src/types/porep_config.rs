@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{collections::HashSet, path::PathBuf};
 
 use anyhow::Result;
 use storage_proofs_core::{
@@ -24,7 +24,7 @@ pub struct PoRepConfig {
     pub partitions: PoRepProofPartitions,
     pub porep_id: [u8; 32],
     pub api_version: ApiVersion,
-    pub api_features: Vec<ApiFeature>,
+    pub api_features: HashSet<ApiFeature>,
 }
 
 impl From<PoRepConfig> for PaddedBytesAmount {
@@ -65,7 +65,7 @@ impl PoRepConfig {
             )),
             porep_id,
             api_version,
-            api_features: vec![],
+            api_features: HashSet::new(),
         }
     }
 
@@ -77,9 +77,7 @@ impl PoRepConfig {
 
     #[inline]
     pub fn enable_feature(&mut self, feat: ApiFeature) {
-        if !self.feature_enabled(feat) {
-            self.api_features.push(feat);
-        }
+        self.api_features.insert(feat);
     }
 
     #[inline]

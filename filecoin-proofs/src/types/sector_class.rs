@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use storage_proofs_core::api_version::ApiVersion;
 
 use crate::types::{PoRepConfig, PoRepProofPartitions, SectorSize};
@@ -23,7 +25,7 @@ impl From<SectorClass> for PoRepConfig {
             partitions,
             porep_id,
             api_version,
-            api_features: vec![],
+            api_features: HashSet::new(),
         }
     }
 }

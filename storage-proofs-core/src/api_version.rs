@@ -92,7 +92,7 @@ impl FromStr for ApiVersion {
 ///
 /// New features always require new network behaviour (i.e. for proper
 /// validation of others, even if not actively using)
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub enum ApiFeature {
     SyntheticPoRep,
 }

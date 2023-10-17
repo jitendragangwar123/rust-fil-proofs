@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use anyhow::{ensure, Result};
 use storage_proofs_core::{api_version::ApiFeature, proof::ProofScheme};
 use storage_proofs_porep::stacked::{self, Challenges, StackedDrg};
@@ -107,7 +109,7 @@ const fn div_ceil(x: usize, y: usize) -> usize {
 fn select_challenges(
     partitions: usize,
     minimum_total_challenges: usize,
-    features: &[ApiFeature],
+    features: &HashSet<ApiFeature>,
 ) -> Challenges {
     let challenges = div_ceil(minimum_total_challenges, partitions);
     if features.contains(&ApiFeature::SyntheticPoRep) {
@@ -125,7 +127,9 @@ mod tests {
 
     #[test]
     fn partition_layer_challenges_test() {
-        let f = |partitions| select_challenges(partitions, 12, &[]).num_challenges_per_partition();
+        let f = |partitions| {
+            select_challenges(partitions, 12, &HashSet::new()).num_challenges_per_partition()
+        };
         // Update to ensure all supported PoRepProofPartitions options are represented here.
         assert_eq!(6, f(usize::from(PoRepProofPartitions(2))));
 

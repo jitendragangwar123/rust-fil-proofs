@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use bellperson::{
     groth16,
     util_cs::{metric_cs::MetricCS, test_cs::TestConstraintSystem},
@@ -71,7 +73,7 @@ fn test_stacked_compound<Tree: 'static + MerkleTreeTrait>() {
             challenges,
             num_layers,
             api_version: ApiVersion::V1_1_0,
-            api_features: vec![],
+            api_features: HashSet::new(),
         },
         partitions: Some(partition_count),
         priority: false,
