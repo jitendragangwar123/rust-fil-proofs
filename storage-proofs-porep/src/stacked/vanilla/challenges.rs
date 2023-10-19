@@ -19,6 +19,12 @@ pub struct InteractivePoRep {
 }
 
 impl InteractivePoRep {
+    pub const fn new(challenges_per_partition: usize) -> Self {
+        Self {
+            challenges_per_partition,
+        }
+    }
+
     /// Returns the porep challenges for partition `k`.
     pub fn derive<D: Domain>(
         &self,
@@ -50,6 +56,12 @@ pub struct SynthPoRep {
 }
 
 impl SynthPoRep {
+    pub const fn new(challenges_per_partition: usize) -> Self {
+        Self {
+            challenges_per_partition,
+        }
+    }
+
     /// Returns the porep challenges for partition `k` taken from the synthetic challenges.
     pub fn derive<D: Domain>(
         &self,
@@ -113,6 +125,12 @@ pub struct NiPoRep {
 }
 
 impl NiPoRep {
+    pub const fn new(challenges_per_partition: usize) -> Self {
+        Self {
+            challenges_per_partition,
+        }
+    }
+
     pub fn derive<D: Domain>(
         &self,
         sector_nodes: usize,
@@ -145,19 +163,13 @@ pub enum Challenges {
 
 impl Challenges {
     pub const fn new_interactive(challenges_per_partition: usize) -> Self {
-        Self::Interactive(InteractivePoRep {
-            challenges_per_partition,
-        })
+        Self::Interactive(InteractivePoRep::new(challenges_per_partition))
     }
     pub const fn new_synthetic(challenges_per_partition: usize) -> Self {
-        Self::Synth(SynthPoRep {
-            challenges_per_partition,
-        })
+        Self::Synth(SynthPoRep::new(challenges_per_partition))
     }
     pub const fn new_non_interactive(challenges_per_partition: usize) -> Self {
-        Self::Ni(NiPoRep {
-            challenges_per_partition,
-        })
+        Self::Ni(NiPoRep::new(challenges_per_partition))
     }
 
     pub fn num_challenges_per_partition(&self) -> usize {
@@ -399,9 +411,7 @@ mod test {
         let n = 200;
         let layers = 100;
 
-        let challenges = InteractivePoRep {
-            challenges_per_partition: n,
-        };
+        let challenges = InteractivePoRep::new(n);
         let leaves = 1 << 30;
         let rng = &mut thread_rng();
         let replica_id: Sha256Domain = Sha256Domain::random(rng);
@@ -448,17 +458,10 @@ mod test {
         let total_challenges = n * partitions;
 
         for _layer in 1..=layers {
-            let one_partition_challenges = InteractivePoRep {
-                challenges_per_partition: total_challenges,
-            }
-            .derive(leaves, &replica_id, &seed, 0);
+            let one_partition_challenges =
+                InteractivePoRep::new(total_challenges).derive(leaves, &replica_id, &seed, 0);
             let many_partition_challenges = (0..partitions)
-                .flat_map(|k| {
-                    InteractivePoRep {
-                        challenges_per_partition: n,
-                    }
-                    .derive(leaves, &replica_id, &seed, k as u8)
-                })
+                .flat_map(|k| InteractivePoRep::new(n).derive(leaves, &replica_id, &seed, k as u8))
                 .collect::<Vec<_>>();
 
             assert_eq!(one_partition_challenges, many_partition_challenges);
