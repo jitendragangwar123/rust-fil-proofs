@@ -1,3 +1,6 @@
+// Creates the merkle proofs out of the given challenges. This is the same binary for Interactive
+// and Non-interactive PoReps. Synthetic PoReps have a different (two phases) approach.
+
 use std::{fs, marker::PhantomData, path::PathBuf};
 
 use anyhow::Result;
