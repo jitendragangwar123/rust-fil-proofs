@@ -8,10 +8,8 @@ use storage_proofs_core::util::NODE_SIZE;
 use storage_proofs_porep::stacked::InteractivePoRep;
 
 #[derive(Debug, Deserialize, Serialize)]
-struct ChallengesParameters {
-    /// The total number of challenges to create.
-    num_challenges: usize,
-    /// Total number of challenges.
+struct ChallengesInteractiveParameters {
+    num_challenges_per_partition: usize,
     num_partitions: usize,
     #[serde(with = "SerHex::<StrictPfx>")]
     replica_id: [u8; 32],
@@ -22,23 +20,17 @@ struct ChallengesParameters {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-struct ChallengesOutput {
+struct ChallengesInteractiveOutput {
     challenges: Vec<usize>,
 }
 
 fn main() -> Result<()> {
     fil_logger::maybe_init();
 
-    let params: ChallengesParameters = cli::parse_stdin()?;
+    let params: ChallengesInteractiveParameters = cli::parse_stdin()?;
     info!("{:?}", params);
 
-    assert_eq!(
-        params.num_challenges % params.num_partitions,
-        0,
-        "Number of challenges must be divisible by the number of partitions"
-    );
-    let num_challenges = params.num_challenges / params.num_partitions;
-    let challenges = InteractivePoRep::new(num_challenges);
+    let challenges = InteractivePoRep::new(params.num_challenges_per_partition);
     let sector_nodes = usize::try_from(params.sector_size)
         .expect("sector size must be smaller than the default integer size on this platform")
         / NODE_SIZE;
@@ -54,7 +46,7 @@ fn main() -> Result<()> {
         })
         .collect::<Vec<usize>>();
 
-    let output = ChallengesOutput {
+    let output = ChallengesInteractiveOutput {
         challenges: challenge_positions,
     };
     info!("{:?}", output);

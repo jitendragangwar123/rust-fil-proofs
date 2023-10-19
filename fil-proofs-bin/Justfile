@@ -84,11 +84,11 @@ replica_id:
 comm_r_16kib:
     echo '{"comm_c": "0x1b61f9fe67494de955c92d12e02f99ddea102124d1bfd86d1fcc0e64a961bb06", "comm_r_last": "0xdbcf53a5db1289511d3ce5e333a8bdba94e01c95ebf74645fe92c0ce12c84a1b"}'|RUST_LOG=trace cargo run --bin comm-r
 
-challenges_16kib:
-    echo '{"num_challenges": 2, "num_partitions": 1, "replica_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "sector_size": 16384, "seed": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00"}'|RUST_LOG=trace cargo run --bin challenges
+challenges_interactive_16kib:
+    echo '{"num_challenges_per_partition": 2, "num_partitions": 1, "replica_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "sector_size": 16384, "seed": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00"}'|RUST_LOG=trace cargo run --bin challenges-interactive
 
-challenges_32gib:
-    jo -- num_challenges=180 num_partitions=10 -s replica_id=0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00 sector_size=34359738368 -s seed=0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00 | RUST_LOG=trace cargo run --bin challenges
+challenges_interactive_32gib:
+    jo -- num_challenges_per_partition=18 num_partitions=10 -s replica_id=0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00 sector_size=34359738368 -s seed=0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00 | RUST_LOG=trace cargo run --bin challenges-interactive
 
 challenges_synth_generate_16kib:
     echo '{"comm_r": "0xb98d4681bc5b1c2692dadc24d32b02bbb4b3f82aae928d57d8d008c11ed7c646", "num_challenges": 512, "replica_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "sector_size": 16384}'|RUST_LOG=trace cargo run --bin challenges-synth-generate
