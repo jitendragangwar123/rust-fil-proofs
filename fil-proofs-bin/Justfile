@@ -102,6 +102,12 @@ challenges_synth_extract_16kib:
 challenges_synth_extract_32gib:
     jo -- -s comm_r=0x1b61f9fe67494de955c92d12e02f99ddea102124d1bfd86d1fcc0e64a961bb06 num_challenges=180 -s replica_id=0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00 sector_size=34359738368 -s seed=0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00|RUST_LOG=trace cargo run --bin challenges-synth-extract
 
+challenges_ni_16kib:
+    echo '{"comm_r": "0xb98d4681bc5b1c2692dadc24d32b02bbb4b3f82aae928d57d8d008c11ed7c646", "num_challenges_per_partition": 2, "num_partitions": 2, "replica_id": "0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00", "sector_size": 16384}'|RUST_LOG=trace cargo run --bin challenges-ni
+
+challenges_ni_32gib:
+    jo -- -s comm_r=0x1b61f9fe67494de955c92d12e02f99ddea102124d1bfd86d1fcc0e64a961bb06 num_challenges_per_partition=18 num_partitions=79 -s replica_id=0x00112233445566778899aabbccddeeff00112233445566778899aabbccddee00 sector_size=34359738368 | RUST_LOG=trace cargo run --bin challenges-ni
+
 commit_phase1_output_read_16kib:
     echo '{"commit_phase1_output_path": "/tmp/bins-16kib/commit-phase1-output.dat", "sector_size": 16384}' | RUST_LOG=trace cargo run --bin commit-phase1-output-read
 

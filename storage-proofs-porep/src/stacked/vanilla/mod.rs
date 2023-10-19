@@ -23,7 +23,7 @@ mod proof_scheme;
 mod utils;
 
 #[cfg(feature = "tooling")]
-pub use challenges::{synthetic::DEFAULT_SYNTH_CHALLENGE_COUNT, InteractivePoRep};
+pub use challenges::{synthetic::DEFAULT_SYNTH_CHALLENGE_COUNT, InteractivePoRep, NiPoRep};
 pub use challenges::{
     synthetic::SYNTHETIC_POREP_VANILLA_PROOFS_EXT, synthetic::SYNTHETIC_POREP_VANILLA_PROOFS_KEY,
     ChallengeRequirements, Challenges, SynthChallenges,
