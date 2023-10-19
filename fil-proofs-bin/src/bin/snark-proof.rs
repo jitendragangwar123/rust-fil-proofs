@@ -28,8 +28,7 @@ struct SnarkProofParameters {
     comm_r: [u8; 32],
     #[serde(with = "SerHex::<StrictPfx>")]
     comm_r_last: [u8; 32],
-    /// The total number of challenges.
-    num_challenges: usize,
+    num_challenges_per_partition: usize,
     num_layers: usize,
     num_partitions: usize,
     /// The path to the file the proofs should be stored into.
@@ -56,7 +55,7 @@ fn snark_proof<Tree: 'static + MerkleTreeTrait>(
     comm_d: [u8; 32],
     comm_r: [u8; 32],
     comm_r_last: [u8; 32],
-    num_challenges: usize,
+    num_challenges_per_partition: usize,
     num_layers: usize,
     num_partitions: usize,
     parameters_path: String,
@@ -68,6 +67,7 @@ fn snark_proof<Tree: 'static + MerkleTreeTrait>(
         .with_context(|| format!("failed to open porep proofs={:?}", porep_proofs_path))?;
 
     let sector_nodes = (sector_size as usize) / NODE_SIZE;
+    let num_challenges = num_challenges_per_partition * num_partitions;
     let vanilla_proofs = SynthProofs::read::<Tree, DefaultPieceHasher, _>(
         &mut file,
         sector_nodes,
@@ -77,7 +77,7 @@ fn snark_proof<Tree: 'static + MerkleTreeTrait>(
     .with_context(|| format!("failed to read porrep proofs={:?}", porep_proofs_path,))?;
     // The proofs are split into partitions, hence organize them in those partitions.
     let vanilla_proofs_partitions = vanilla_proofs
-        .chunks_exact(num_challenges / num_partitions)
+        .chunks_exact(num_challenges_per_partition)
         .map(|chunk| chunk.to_vec())
         .collect::<Vec<_>>();
 
@@ -136,7 +136,7 @@ fn main() -> Result<()> {
         params.comm_d,
         params.comm_r,
         params.comm_r_last,
-        params.num_challenges,
+        params.num_challenges_per_partition,
         params.num_layers,
         params.num_partitions,
         params.parameters_path,
