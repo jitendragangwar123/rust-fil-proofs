@@ -16,6 +16,11 @@ use serde_hex::{SerHex, StrictPfx};
 use storage_proofs_core::{merkle::MerkleTreeTrait, parameter_cache, util::NODE_SIZE};
 use storage_proofs_porep::stacked::{StackedCircuit, SynthProofs};
 
+/// The number of circuits that will be synthesized in one batch.
+///
+/// This is memory heavy operation, hence we don't always use a single batch only.
+const GROTH16_BATCH_SIZE: usize = 10;
+
 /// Note that `comm_c` and `comm_d` are not strictly needed as they could be read from the
 /// generated trees. Though they are passed in for sanity checking.
 #[derive(Debug, Deserialize, Serialize)]
@@ -75,6 +80,10 @@ fn snark_proof<Tree: 'static + MerkleTreeTrait>(
         0..num_challenges,
     )
     .with_context(|| format!("failed to read porrep proofs={:?}", porep_proofs_path,))?;
+
+    // TODO vmx 2023-10-20: All this splitting into partitions and chunks is confusion, make the
+    // cdoe easier to understand.
+
     // The proofs are split into partitions, hence organize them in those partitions.
     let vanilla_proofs_partitions = vanilla_proofs
         .chunks_exact(num_challenges_per_partition)
@@ -106,11 +115,20 @@ fn snark_proof<Tree: 'static + MerkleTreeTrait>(
     let groth_params = parameter_cache::read_cached_params(Path::new(&parameters_path))?;
 
     let mut rng = OsRng;
-    let groth_proofs =
-        groth16::create_random_proof_batch_in_priority(circuits, &groth_params, &mut rng)?;
+    // The proof synthesis takes a lot of memory and is highly parallelized. Hence process it in
+    // chunks to reduce the maximum memory consuption.
+    let groth_proofs = circuits
+        .chunks(GROTH16_BATCH_SIZE)
+        .flat_map(|circuits_chunk| {
+            groth16::create_random_proof_batch_in_priority(
+                circuits_chunk.to_vec(),
+                &groth_params,
+                &mut rng,
+            )
+        })
+        .flatten();
 
     let groth_proofs_result = groth_proofs
-        .into_iter()
         .map(|groth_proof| {
             let mut proof_vec = Vec::new();
             groth_proof.write(&mut proof_vec)?;
