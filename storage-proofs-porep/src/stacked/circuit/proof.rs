@@ -120,7 +120,7 @@ impl<Tree: MerkleTreeTrait, G: Hasher> Circuit<Fr> for StackedCircuit<Tree, G> {
             comm_c,
             num_layers,
         } = self;
-log::trace!("vmx: stacked circuit: synthesize1");
+        log::trace!("vmx: stacked circuit: synthesize1");
         // Allocate replica_id
         let replica_id_num = AllocatedNum::alloc(cs.namespace(|| "replica_id"), || {
             replica_id
@@ -141,7 +141,7 @@ log::trace!("vmx: stacked circuit: synthesize1");
                 .ok_or(SynthesisError::AssignmentMissing)
         })?;
 
-log::trace!("vmx: stacked circuit: synthesize2");
+        log::trace!("vmx: stacked circuit: synthesize2");
         // make comm_d a public input
         comm_d_num.inputize(cs.namespace(|| "comm_d_input"))?;
 
@@ -169,7 +169,7 @@ log::trace!("vmx: stacked circuit: synthesize2");
                 .ok_or(SynthesisError::AssignmentMissing)
         })?;
 
-log::trace!("vmx: stacked circuit: synthesize3");
+        log::trace!("vmx: stacked circuit: synthesize3");
         // Verify comm_r = H(comm_c || comm_r_last)
         {
             let hash_num = <Tree::Hasher as Hasher>::Function::hash2_circuit(
@@ -188,7 +188,7 @@ log::trace!("vmx: stacked circuit: synthesize3");
         }
 
         for (i, proof) in proofs.into_iter().enumerate() {
-log::trace!("vmx: stacked circuit: synthesize4: proof: {}", i);
+            log::trace!("vmx: stacked circuit: synthesize4: proof: {}", i);
             proof.synthesize(
                 &mut cs.namespace(|| format!("challenge_{}", i)),
                 num_layers,

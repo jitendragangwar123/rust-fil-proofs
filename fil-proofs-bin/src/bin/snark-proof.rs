@@ -32,11 +32,14 @@ static GLOBAL: Allocator<System> = Allocator::system();
 /// This is memory heavy operation, hence we don't always use a single batch only.
 const GROTH16_BATCH_SIZE: usize = 10;
 
+/// At which difference of memory usage it's being printed.
+const TRACKER_THRESHOLD: usize = 5 * 1024 * 1024;
 
 struct StdoutTracker {
     //total: Rc<RefCell<usize>>,
     total: Arc<Mutex<usize>>,
     counter: Arc<Mutex<usize>>,
+    prev_printed: Arc<Mutex<usize>>,
 }
 
 impl StdoutTracker {
@@ -44,6 +47,7 @@ impl StdoutTracker {
         Self {
             total: Arc::new(Mutex::new(0)),
             counter: Arc::new(Mutex::new(0)),
+            prev_printed: Arc::new(Mutex::new(0)),
         }
     }
 }
@@ -69,8 +73,13 @@ impl AllocationTracker for StdoutTracker {
         **self.counter.lock().unwrap().borrow_mut() += 1;
         **self.total.lock().unwrap().borrow_mut() += wrapped_size;
 
+        let total = *self.total.lock().unwrap();
         if *self.counter.lock().unwrap() % 100000 == 0 {
-            println!("vmx: currently allocated: {:?} MiB", *self.total.lock().unwrap() / 1024 / 1024);
+            let prev_printed = *self.prev_printed.lock().unwrap();
+            if prev_printed < total - TRACKER_THRESHOLD || prev_printed > total + TRACKER_THRESHOLD {
+                println!("vmx: currently allocated: {:?} MiB", total / 1024 / 1024);
+                **self.prev_printed.lock().unwrap().borrow_mut() = total;
+            }
         }
     }
 
