@@ -13,3 +13,8 @@ members = [
   "storage-proofs-update",
   "fil-proofs-bin",
 ]
+
+[patch.crates-io]
+bellpepper = { git = "https://github.com/vmx/bellpepper", branch = "less-mem" }
+bellpepper-core = { git = "https://github.com/vmx/bellpepper", branch = "less-mem" }
+bellperson = { git = "https://github.com/vmx/bellman", branch = "less-mem" }
