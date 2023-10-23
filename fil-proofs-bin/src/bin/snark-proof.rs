@@ -74,13 +74,14 @@ impl AllocationTracker for StdoutTracker {
         **self.total.lock().unwrap().borrow_mut() += wrapped_size;
 
         let total = *self.total.lock().unwrap();
-        if *self.counter.lock().unwrap() % 100000 == 0 {
+        //if *self.counter.lock().unwrap() % 100000 == 0 {
             let prev_printed = *self.prev_printed.lock().unwrap();
-            if prev_printed < total - TRACKER_THRESHOLD || prev_printed > total + TRACKER_THRESHOLD {
+            if total > TRACKER_THRESHOLD &&
+                (prev_printed < total - TRACKER_THRESHOLD || prev_printed > total + TRACKER_THRESHOLD) {
                 println!("vmx: currently allocated: {:?} MiB", total / 1024 / 1024);
                 **self.prev_printed.lock().unwrap().borrow_mut() = total;
             }
-        }
+        //}
     }
 
     fn deallocated(
