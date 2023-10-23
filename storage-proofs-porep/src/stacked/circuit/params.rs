@@ -119,16 +119,19 @@ impl<Tree: MerkleTreeTrait, G: 'static + Hasher> Proof<Tree, G> {
             ..
         } = self;
 
+        log::trace!("vmx: stacked circuit params: synthesize11");
         assert!(!drg_parents_proofs.is_empty());
         assert!(!exp_parents_proofs.is_empty());
 
         // -- verify initial data layer
 
+        log::trace!("vmx: stacked circuit params: synthesize12");
         // PrivateInput: data_leaf
         let data_leaf_num = AllocatedNum::alloc(cs.namespace(|| "data_leaf"), || {
             data_leaf.ok_or(SynthesisError::AssignmentMissing)
         })?;
 
+        log::trace!("vmx: stacked circuit params: synthesize13");
         // enforce inclusion of the data leaf in the tree D
         enforce_inclusion(
             cs.namespace(|| "comm_d_inclusion"),
