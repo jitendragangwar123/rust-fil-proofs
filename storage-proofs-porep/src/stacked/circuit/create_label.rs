@@ -36,6 +36,7 @@ where
         ciphertexts.push(Boolean::constant(false));
     }
 
+log::trace!("vmx: stacked circuit params: synthesize310");
     ciphertexts.extend_from_slice(&layer_index.into_bits_be());
     ciphertexts.extend_from_slice(&node.to_bits_be());
     // pad to 64 bytes
@@ -43,6 +44,7 @@ where
         ciphertexts.push(Boolean::constant(false));
     }
 
+log::trace!("vmx: stacked circuit params: synthesize311");
     for parent in parents.iter() {
         ciphertexts.extend_from_slice(parent);
 
@@ -52,6 +54,7 @@ where
         }
     }
 
+log::trace!("vmx: stacked circuit params: synthesize312");
     // 32b replica id
     // 32b layer_index + node
     // 37 * 32b  = 1184b parents
@@ -60,12 +63,15 @@ where
     // Compute Sha256
     let alloc_bits = sha256_circuit(cs.namespace(|| "hash"), &ciphertexts[..])?;
 
+log::trace!("vmx: stacked circuit params: synthesize313");
     // Convert the hash result into a single Fr.
     let bits = reverse_bit_numbering(alloc_bits);
-    multipack::pack_bits(
+    let ret = multipack::pack_bits(
         cs.namespace(|| "result_num"),
         &bits[0..(Scalar::CAPACITY as usize)],
-    )
+    );
+log::trace!("vmx: stacked circuit params: synthesize314");
+ret
 }
 
 #[cfg(test)]

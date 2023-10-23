@@ -14,6 +14,7 @@ use storage_proofs_core::{
     merkle::{DiskStore, MerkleProofTrait, MerkleTreeTrait, MerkleTreeWrapper},
     util::reverse_bit_numbering,
 };
+use tracking_allocator::AllocationGroupToken;
 
 use crate::stacked::{
     circuit::{column_proof::ColumnProof, create_label_circuit, hash::hash_single_column},
@@ -105,6 +106,10 @@ impl<Tree: MerkleTreeTrait, G: 'static + Hasher> Proof<Tree, G> {
         comm_r_last: &AllocatedNum<Fr>,
         replica_id: &[Boolean],
     ) -> Result<(), SynthesisError> {
+log::trace!("vmx: stacked circuit params: synthesize1");
+
+
+
         let Proof {
             comm_d_path,
             data_leaf,
@@ -134,6 +139,7 @@ impl<Tree: MerkleTreeTrait, G: 'static + Hasher> Proof<Tree, G> {
             &data_leaf_num,
         )?;
 
+log::trace!("vmx: stacked circuit params: synthesize2");
         // -- verify replica column openings
 
         // Private Inputs for the DRG parent nodes.
@@ -159,6 +165,7 @@ impl<Tree: MerkleTreeTrait, G: 'static + Hasher> Proof<Tree, G> {
         // Private Inputs for the Expander parent nodes.
         let mut exp_parents = Vec::new();
 
+log::trace!("vmx: stacked circuit params: synthesize2");
         for (i, parent) in exp_parents_proofs.into_iter().enumerate() {
             let (parent_col, inclusion_path) =
                 parent.alloc(cs.namespace(|| format!("exp_parent_{}_num", i)))?;
@@ -184,6 +191,11 @@ impl<Tree: MerkleTreeTrait, G: 'static + Hasher> Proof<Tree, G> {
         // PublicInput: challenge index
         let challenge_num = UInt64::alloc(cs.namespace(|| "challenge"), challenge)?;
         challenge_num.pack_into_input(cs.namespace(|| "challenge input"))?;
+
+log::trace!("vmx: stacked circuit params: synthesize3");
+    let mut local_token =
+        AllocationGroupToken::register().expect("failed to register allocation group");
+    let local_guard = local_token.enter();
 
         for layer in 1..=layers {
             let layer_num = UInt32::constant(layer as u32);
@@ -231,6 +243,9 @@ impl<Tree: MerkleTreeTrait, G: 'static + Hasher> Proof<Tree, G> {
                 expanded_parents.push(parents[0].clone()); // 37
             };
 
+//log::trace!("vmx: stacked circuit params: synthesize31: num expaneded parent, mem, total: {} {} {}", expanded_parents.len(), std::mem::size_of_val(&expanded_parents[0]), std::mem::size_of_val(&expanded_parents[0]) * expanded_parents.len());
+log::trace!("vmx: stacked circuit params: synthesize31");
+
             // Reconstruct the label
             let label = create_label_circuit(
                 cs.namespace(|| "create_label"),
@@ -239,8 +254,13 @@ impl<Tree: MerkleTreeTrait, G: 'static + Hasher> Proof<Tree, G> {
                 layer_num,
                 challenge_num.clone(),
             )?;
+log::trace!("vmx: stacked circuit params: synthesize32");
             column_labels.push(label);
+log::trace!("vmx: stacked circuit params: synthesize33");
         }
+        drop(local_guard);
+//log::trace!("vmx: stacked circuit params: synthesize4: labels: num, mem, total: {} {} {}", column_labels.len(), std::mem::size_of_val(&column_labels[0]), std::mem::size_of_val(&column_labels[0]) * column_labels.len());
+log::trace!("vmx: stacked circuit params: synthesize4");
 
         // -- encoding node
         {
@@ -259,6 +279,7 @@ impl<Tree: MerkleTreeTrait, G: 'static + Hasher> Proof<Tree, G> {
             )?;
         }
 
+log::trace!("vmx: stacked circuit params: synthesize5");
         // -- ensure the column hash of the labels is included
         {
             // calculate column_hash
@@ -274,6 +295,7 @@ impl<Tree: MerkleTreeTrait, G: 'static + Hasher> Proof<Tree, G> {
             )?;
         }
 
+log::trace!("vmx: stacked circuit params: synthesize6");
         Ok(())
     }
 }

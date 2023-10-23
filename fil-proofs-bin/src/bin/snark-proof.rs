@@ -1,6 +1,11 @@
 use std::{
+    alloc::System,
+    borrow::BorrowMut,
+    cell::RefCell,
     fs::{self, File},
     path::Path,
+    rc::Rc,
+    sync::{Arc, Mutex},
 };
 
 use anyhow::{Context, Result};
@@ -15,11 +20,81 @@ use serde::{Deserialize, Serialize};
 use serde_hex::{SerHex, StrictPfx};
 use storage_proofs_core::{merkle::MerkleTreeTrait, parameter_cache, util::NODE_SIZE};
 use storage_proofs_porep::stacked::{StackedCircuit, SynthProofs};
+use tracking_allocator::{
+    AllocationGroupId, AllocationRegistry, AllocationTracker, Allocator,
+};
+
+#[global_allocator]
+static GLOBAL: Allocator<System> = Allocator::system();
 
 /// The number of circuits that will be synthesized in one batch.
 ///
 /// This is memory heavy operation, hence we don't always use a single batch only.
 const GROTH16_BATCH_SIZE: usize = 10;
+
+
+struct StdoutTracker {
+    //total: Rc<RefCell<usize>>,
+    total: Arc<Mutex<usize>>,
+    counter: Arc<Mutex<usize>>,
+}
+
+impl StdoutTracker {
+    pub fn new() -> Self {
+        Self {
+            total: Arc::new(Mutex::new(0)),
+            counter: Arc::new(Mutex::new(0)),
+        }
+    }
+}
+
+// This is our tracker implementation.  You will always need to create an implementation of `AllocationTracker` in order
+// to actually handle allocation events.  The interface is straightforward: you're notified when an allocation occurs,
+// and when a deallocation occurs.
+impl AllocationTracker for StdoutTracker {
+    fn allocated(
+        &self,
+        addr: usize,
+        object_size: usize,
+        wrapped_size: usize,
+        group_id: AllocationGroupId,
+    ) {
+        // Allocations have all the pertinent information upfront, which you may or may not want to store for further
+        // analysis. Notably, deallocations also know how large they are, and what group ID they came from, so you
+        // typically don't have to store much data for correlating deallocations with their original allocation.
+        //println!(
+        //    "allocation -> addr=0x{:0x} object_size={} wrapped_size={} group_id={:?}",
+        //    addr, object_size, wrapped_size, group_id
+        //);
+        **self.counter.lock().unwrap().borrow_mut() += 1;
+        **self.total.lock().unwrap().borrow_mut() += wrapped_size;
+
+        if *self.counter.lock().unwrap() % 100000 == 0 {
+            println!("vmx: currently allocated: {:?} MiB", *self.total.lock().unwrap() / 1024 / 1024);
+        }
+    }
+
+    fn deallocated(
+        &self,
+        addr: usize,
+        object_size: usize,
+        wrapped_size: usize,
+        source_group_id: AllocationGroupId,
+        current_group_id: AllocationGroupId,
+    ) {
+        // When a deallocation occurs, as mentioned above, you have full access to the address, size of the allocation,
+        // as well as the group ID the allocation was made under _and_ the active allocation group ID.
+        //
+        // This can be useful beyond just the obvious "track how many current bytes are allocated by the group", instead
+        // going further to see the chain of where allocations end up, and so on.
+        //println!(
+        //    "deallocation -> addr=0x{:0x} object_size={} wrapped_size={} source_group_id={:?} current_group_id={:?}",
+        //    addr, object_size, wrapped_size, source_group_id, current_group_id
+        //);
+        **self.total.lock().unwrap().borrow_mut() -= wrapped_size;
+    }
+}
+
 
 /// Note that `comm_c` and `comm_d` are not strictly needed as they could be read from the
 /// generated trees. Though they are passed in for sanity checking.
@@ -144,6 +219,10 @@ fn snark_proof<Tree: 'static + MerkleTreeTrait>(
 fn main() -> Result<()> {
     fil_logger::maybe_init();
 
+    let _ = AllocationRegistry::set_global_tracker(StdoutTracker::new())
+        .expect("no other global tracker should be set yet");
+    AllocationRegistry::enable_tracking();
+
     let params: SnarkProofParameters = cli::parse_stdin()?;
     info!("{:?}", params);
 
@@ -168,6 +247,8 @@ fn main() -> Result<()> {
     let output = SnarkProofOutput::default();
     info!("{:?}", output);
     cli::print_stdout(output)?;
+
+    AllocationRegistry::disable_tracking();
 
     Ok(())
 }
