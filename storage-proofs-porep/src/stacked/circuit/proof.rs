@@ -127,13 +127,16 @@ impl<Tree: MerkleTreeTrait, G: Hasher> Circuit<Fr> for StackedCircuit<Tree, G> {
                 .map(Into::into)
                 .ok_or(SynthesisError::AssignmentMissing)
         })?;
+        log::trace!("vmx: stacked circuit: synthesize10");
 
         // make replica_id a public input
         replica_id_num.inputize(cs.namespace(|| "replica_id_input"))?;
 
+        log::trace!("vmx: stacked circuit: synthesize11");
         let replica_id_bits =
             reverse_bit_numbering(replica_id_num.to_bits_le(cs.namespace(|| "replica_id_bits"))?);
 
+        log::trace!("vmx: stacked circuit: synthesize12");
         // Allocate comm_d as Fr
         let comm_d_num = AllocatedNum::alloc(cs.namespace(|| "comm_d"), || {
             comm_d
