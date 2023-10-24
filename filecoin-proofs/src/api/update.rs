@@ -4,27 +4,25 @@ use std::path::Path;
 
 use anyhow::{ensure, Context, Result};
 use bellperson::groth16;
-use bincode::{deserialize, serialize};
 use blstrs::Scalar as Fr;
 use ff::PrimeField;
 use filecoin_hashers::{Domain, Hasher};
 use fr32::bytes_into_fr;
 use generic_array::typenum::Unsigned;
-use log::info;
+use log::{info, trace};
 use merkletree::merkle::get_merkle_tree_len;
 use merkletree::store::StoreConfig;
 use rayon::prelude::*;
 use sha2::{Digest, Sha256};
 use storage_proofs_core::{
     api_version::ApiVersion,
-    cache_key::CacheKey,
     compound_proof::{self, CompoundProof},
     merkle::{get_base_tree_count, MerkleTreeTrait},
     multi_proof::MultiProof,
     proof::ProofScheme,
     util::NODE_SIZE,
 };
-use storage_proofs_porep::stacked::{PersistentAux, TemporaryAux};
+use storage_proofs_porep::stacked::TemporaryAux;
 use storage_proofs_update::{
     constants::{h_default, TreeDArity, TreeDDomain, TreeRDomain, TreeRHasher},
     phi,
@@ -105,67 +103,6 @@ fn pad_inputs_to_target(
     Ok(new_inputs)
 }
 
-// Instantiates p_aux from the specified cache_dir for access to comm_c and comm_r_last
-fn get_p_aux<Tree: 'static + MerkleTreeTrait<Hasher = TreeRHasher>>(
-    cache_path: &Path,
-) -> Result<PersistentAux<<Tree::Hasher as Hasher>::Domain>> {
-    let p_aux_path = cache_path.join(CacheKey::PAux.to_string());
-    let p_aux_bytes = fs::read(&p_aux_path)
-        .with_context(|| format!("could not read file p_aux={:?}", p_aux_path))?;
-
-    let p_aux = deserialize(&p_aux_bytes)?;
-
-    Ok(p_aux)
-}
-
-fn persist_p_aux<Tree: 'static + MerkleTreeTrait<Hasher = TreeRHasher>>(
-    p_aux: &PersistentAux<<Tree::Hasher as Hasher>::Domain>,
-    cache_path: &Path,
-) -> Result<()> {
-    let p_aux_path = cache_path.join(CacheKey::PAux.to_string());
-    let mut f_p_aux = File::create(&p_aux_path)
-        .with_context(|| format!("could not create file p_aux={:?}", p_aux_path))?;
-    let p_aux_bytes = serialize(&p_aux)?;
-    f_p_aux
-        .write_all(&p_aux_bytes)
-        .with_context(|| format!("could not write to file p_aux={:?}", p_aux_path))?;
-
-    Ok(())
-}
-
-// Instantiates t_aux from the specified cache_dir for access to
-// labels and tree_d, tree_c, tree_r_last store configs
-fn get_t_aux<Tree: 'static + MerkleTreeTrait<Hasher = TreeRHasher>>(
-    cache_path: &Path,
-) -> Result<TemporaryAux<Tree, DefaultPieceHasher>> {
-    let t_aux_path = cache_path.join(CacheKey::TAux.to_string());
-    trace!("Instantiating TemporaryAux from {:?}", cache_path);
-    let t_aux_bytes = fs::read(&t_aux_path)
-        .with_context(|| format!("could not read file t_aux={:?}", t_aux_path))?;
-
-    let mut res: TemporaryAux<Tree, DefaultPieceHasher> = deserialize(&t_aux_bytes)?;
-    res.set_cache_path(cache_path);
-    trace!("Set TemporaryAux cache_path to {:?}", cache_path);
-
-    Ok(res)
-}
-
-fn persist_t_aux<Tree: 'static + MerkleTreeTrait<Hasher = TreeRHasher>>(
-    t_aux: &TemporaryAux<Tree, DefaultPieceHasher>,
-    cache_path: &Path,
-) -> Result<()> {
-    let t_aux_path = cache_path.join(CacheKey::TAux.to_string());
-    let mut f_t_aux = File::create(&t_aux_path)
-        .with_context(|| format!("could not create file t_aux={:?}", t_aux_path))?;
-    let t_aux_bytes = serialize(&t_aux)?;
-    f_t_aux
-        .write_all(&t_aux_bytes)
-        .with_context(|| format!("could not write to file t_aux={:?}", t_aux_path))?;
-
-    Ok(())
-}
-
->>>>>>> 3d515673 (feat: add the basic functionality for applying SnarkPack to SnapDeals)
 // Re-instantiate a t_aux with the new cache path, then use the tree_d
 // and tree_r_last configs from it.  This is done to preserve the
 // original tree configuration info (in particular, the
