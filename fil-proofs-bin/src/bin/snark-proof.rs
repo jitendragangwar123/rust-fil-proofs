@@ -20,9 +20,7 @@ use serde::{Deserialize, Serialize};
 use serde_hex::{SerHex, StrictPfx};
 use storage_proofs_core::{merkle::MerkleTreeTrait, parameter_cache, util::NODE_SIZE};
 use storage_proofs_porep::stacked::{StackedCircuit, SynthProofs};
-use tracking_allocator::{
-    AllocationGroupId, AllocationRegistry, AllocationTracker, Allocator,
-};
+use tracking_allocator::{AllocationGroupId, AllocationRegistry, AllocationTracker, Allocator};
 
 #[global_allocator]
 static GLOBAL: Allocator<System> = Allocator::system();
@@ -75,12 +73,14 @@ impl AllocationTracker for StdoutTracker {
 
         let total = *self.total.lock().unwrap();
         //if *self.counter.lock().unwrap() % 100000 == 0 {
-            let prev_printed = *self.prev_printed.lock().unwrap();
-            if total > TRACKER_THRESHOLD &&
-                (prev_printed < total - TRACKER_THRESHOLD || prev_printed > total + TRACKER_THRESHOLD) {
-                println!("vmx: currently allocated: {:?} MiB", total / 1024 / 1024);
-                **self.prev_printed.lock().unwrap().borrow_mut() = total;
-            }
+        let prev_printed = *self.prev_printed.lock().unwrap();
+        if total > TRACKER_THRESHOLD
+            && (prev_printed < total - TRACKER_THRESHOLD
+                || prev_printed > total + TRACKER_THRESHOLD)
+        {
+            println!("vmx: currently allocated: {:?} MiB", total / 1024 / 1024);
+            **self.prev_printed.lock().unwrap().borrow_mut() = total;
+        }
         //}
     }
 
@@ -104,7 +104,6 @@ impl AllocationTracker for StdoutTracker {
         **self.total.lock().unwrap().borrow_mut() -= wrapped_size;
     }
 }
-
 
 /// Note that `comm_c` and `comm_d` are not strictly needed as they could be read from the
 /// generated trees. Though they are passed in for sanity checking.
