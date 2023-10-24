@@ -62,9 +62,10 @@ fn snark_proof_verify<Tree: 'static + MerkleTreeTrait>(
     seed: [u8; 32],
     verifying_key_path: String,
 ) -> Result<bool> {
-    let proof_bytes = fs::read(&input_path).with_context(|| format!("failed to open proofs={:?}", input_path))?;
-    let num_proofs = num_challenges_per_partition * num_partitions;
-    let proofs = groth16::Proof::read_many(&proof_bytes, num_proofs)?;
+    let proof_bytes =
+        fs::read(&input_path).with_context(|| format!("failed to open proofs={:?}", input_path))?;
+    let proofs = groth16::Proof::read_many(&proof_bytes, num_partitions)
+        .context("failed to parse proofs")?;
     let proofs_ref = proofs.iter().collect::<Vec<_>>();
 
     let public_inputs = PublicInputs {
@@ -102,7 +103,7 @@ fn snark_proof_verify<Tree: 'static + MerkleTreeTrait>(
         _,
     >>::setup(&compound_setup_params)?;
 
-    let inputs: Vec<_> = (0..num_proofs)
+    let inputs: Vec<_> = (0..num_partitions)
         .into_par_iter()
         .map(|k| {
             StackedCompound::<Tree, Sha256Hasher>::generate_public_inputs(
@@ -112,7 +113,6 @@ fn snark_proof_verify<Tree: 'static + MerkleTreeTrait>(
             )
         })
         .collect::<Result<_>>()?;
-
     let verifying_key = parameter_cache::read_cached_verifying_key(Path::new(&verifying_key_path))
         .with_context(|| format!("failed to read verifying key={:?}", verifying_key_path))?;
     let prepared_verifying_key = groth16::prepare_verifying_key(&verifying_key);
@@ -122,7 +122,8 @@ fn snark_proof_verify<Tree: 'static + MerkleTreeTrait>(
         &mut OsRng,
         &proofs_ref[..],
         &inputs,
-    )?;
+    )
+    .context("verification failed")?;
     Ok(verifies)
 }
 
