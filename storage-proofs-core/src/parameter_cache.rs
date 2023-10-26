@@ -547,6 +547,7 @@ fn read_cached_verifying_key(cache_entry_path: &Path) -> Result<groth16::Verifyi
     })
 }
 
+#[cfg_attr(feature = "tooling", visibility::make(pub))]
 fn read_cached_srs_key(cache_entry_path: &Path) -> Result<groth16::aggregate::GenericSRS<Bls12>> {
     info!("checking cache_path: {:?} for srs", cache_entry_path);
 
