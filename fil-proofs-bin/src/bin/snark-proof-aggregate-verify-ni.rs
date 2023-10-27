@@ -23,7 +23,7 @@ use storage_proofs_porep::stacked::{
 };
 
 #[derive(Debug, Deserialize, Serialize)]
-struct SnarkProofAggregateVerifyParameters {
+struct SnarkProofAggregateVerifyNiParameters {
     #[serde(with = "SerHex::<StrictPfx>")]
     comm_d: [u8; 32],
     #[serde(with = "SerHex::<StrictPfx>")]
@@ -47,7 +47,7 @@ struct SnarkProofAggregateVerifyParameters {
 }
 
 #[derive(Debug, Default, Deserialize, Serialize)]
-struct SnarkProofAggregateVerifyOutput {
+struct SnarkProofAggregateVerifyNiOutput {
     verifies: bool,
 }
 
@@ -166,7 +166,7 @@ fn snark_proof_verify<Tree: 'static + MerkleTreeTrait>(
 fn main() -> Result<()> {
     fil_logger::maybe_init();
 
-    let params: SnarkProofAggregateVerifyParameters = cli::parse_stdin()?;
+    let params: SnarkProofAggregateVerifyNiParameters = cli::parse_stdin()?;
     info!("{:?}", params);
 
     let verifies = with_shape!(
@@ -186,7 +186,7 @@ fn main() -> Result<()> {
         params.verifying_key_path,
     )?;
 
-    let output = SnarkProofAggregateVerifyOutput { verifies };
+    let output = SnarkProofAggregateVerifyNiOutput { verifies };
     info!("{:?}", output);
     cli::print_stdout(output)?;
 
