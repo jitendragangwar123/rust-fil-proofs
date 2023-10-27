@@ -36,10 +36,10 @@ The [`pc1_pc2_cc.sh` script] illustrates how you could run the Precommit phase f
 
 ### Non-interactive Proof-of-replication
 
-The [`ni-porep-cc.sh` script] runs a Ni-PoRep (including sealing) on a single CC sector. Example of running it for a 16KiB sector:
+The [`ni-porep-cc.sh` script] runs a Ni-PoRep (including sealing) on a single CC sector. Example of running it for a 2KiB sector:
 
 ```console
-> echo '{"output_dir": "/tmp/16kib", "porep_id": "0x0500000000000000000000000000000000000000000000000000000000000000", "replica_id": "0xd93f7c0618c236179361de2164ce34ffaf26ecf3be7bf7e6b8f0cfcf886ad000", "sector_size": 16384, "seed": "0xb59b73958d310335a3b43491e15221ed8f2d22c1b86e77ca53439ad5aed02e00"}'|./scripts/ni-porep-cc.sh
+> echo '{"output_dir": "/tmp/2kib", "porep_id": "0x0500000000000000000000000000000000000000000000000000000000000000", "replica_id": "0xd93f7c0618c236179361de2164ce34ffaf26ecf3be7bf7e6b8f0cfcf886ad000", "sector_size": 2048, "seed": "0xb59b73958d310335a3b43491e15221ed8f2d22c1b86e77ca53439ad5aed02e00"}'|./scripts/ni-porep-cc.sh
 ```
 
 License
