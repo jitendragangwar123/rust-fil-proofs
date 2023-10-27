@@ -29,11 +29,18 @@ CARGO='cargo run --release --features cuda'
 The [`pc1_pc2_cc.sh` script] illustrates how you could run the Precommit phase for a single CC sector. It returns the `CommR` of that sector. Example of running it for a 2KiB sector:
 
 ```console
-> echo '{"output_dir": "/tmp/2kib", "porep_id": "0x0500000000000000000000000000000000000000000000000000000000000000", "replica_path": "/tmp/2kib/sc-02-data-layer-2.dat", "replica_id": "0xd93f7c0618c236179361de2164ce34ffaf26ecf3be7bf7e6b8f0cfcf886ad0d0", "sector_size": 2048}'|./scripts/pc1_pc2_cc.sh
+> echo '{"output_dir": "/tmp/2kib", "porep_id": "0x0500000000000000000000000000000000000000000000000000000000000000", "replica_id": "0xd93f7c0618c236179361de2164ce34ffaf26ecf3be7bf7e6b8f0cfcf886ad000", "sector_size": 2048}'|./scripts/pc1_pc2_cc.sh
 …
 {"comm_r":"0x9dabeaa4e2b53153152ac485c6b8ede4d750be12d0fae4fa265161dc0ff5502a"}
 ```
 
+### Non-interactive Proof-of-replication
+
+The [`ni-porep-cc.sh` script] runs a Ni-PoRep (including sealing) on a single CC sector. Example of running it for a 16KiB sector:
+
+```console
+> echo '{"output_dir": "/tmp/16kib", "porep_id": "0x0500000000000000000000000000000000000000000000000000000000000000", "replica_id": "0xd93f7c0618c236179361de2164ce34ffaf26ecf3be7bf7e6b8f0cfcf886ad000", "sector_size": 16384, "seed": "0xb59b73958d310335a3b43491e15221ed8f2d22c1b86e77ca53439ad5aed02e00"}'|./scripts/ni-porep-cc.sh
+```
 
 License
 -------
@@ -41,6 +48,7 @@ License
 [MIT] or [Apache 2.0].
 
 [`scripts`]: ./scripts
-[`pc1_pc2.sh` script]: ./scripts/pc1_pc2.sh
+[`pc1_pc2_cc.sh` script]: ./scripts/pc1_pc2_cc.sh
+[`ni-porep-cc.sh` script]: ./scripts/ni-porep-cc.sh
 [MIT]: ./LICENSE-MIT
 [Apache 2.0]: ./LICENSE-APACHE
