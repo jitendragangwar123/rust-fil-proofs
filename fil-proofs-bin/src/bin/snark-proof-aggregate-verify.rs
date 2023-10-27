@@ -90,7 +90,7 @@ fn snark_proof_verify<Tree: 'static + MerkleTreeTrait>(
         degree: DRG_DEGREE,
         expansion_degree: EXP_DEGREE,
         porep_id,
-        challenges: Challenges::new_interactive(num_challenges_per_partition),
+        challenges: Challenges::new_non_interactive(num_challenges_per_partition),
         num_layers,
         api_version: ApiVersion::V1_2_0,
         // Even if the proofs come from the a synthetic porep, it doesn't matter for the SNARK,
