@@ -64,10 +64,9 @@ fn main() -> Result<()> {
         hasher.finalize().into()
     };
 
-    let srs_generic_prover_key =
-        parameter_cache::read_cached_srs_key(Path::new(&params.srs_key_path))
-            .with_context(|| format!("failed to read srs key={:?}", params.srs_key_path))?;
-    let (srs_prover_key, _srs_verifer_key) = srs_generic_prover_key.specialize(target_proofs_len);
+    let srs_key = parameter_cache::read_cached_srs_key(Path::new(&params.srs_key_path))
+        .with_context(|| format!("failed to read srs key={:?}", params.srs_key_path))?;
+    let (srs_prover_key, _srs_verifer_key) = srs_key.specialize(target_proofs_len);
 
     let aggregated = groth16::aggregate::aggregate_proofs(
         &srs_prover_key,
