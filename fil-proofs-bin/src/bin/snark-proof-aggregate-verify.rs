@@ -51,6 +51,7 @@ struct SnarkProofAggregateVerifyOutput {
     verifies: bool,
 }
 
+// This code is very similar to `filecoin_proofs::api::verify_aggregate_seal_commit_proofs`.
 #[allow(clippy::too_many_arguments)]
 fn snark_proof_verify<Tree: 'static + MerkleTreeTrait>(
     comm_d: [u8; 32],
@@ -124,6 +125,11 @@ fn snark_proof_verify<Tree: 'static + MerkleTreeTrait>(
     let num_inputs_per_proof =
         filecoin_proofs::get_aggregate_target_len(num_inputs) / aggregated_proofs_len;
     let target_inputs_len = aggregated_proofs_len * num_inputs_per_proof;
+    assert_eq!(
+        target_inputs_len % aggregated_proofs_len,
+        0,
+        "invalid number of inputs provided"
+    );
 
     // Pad public inputs if needed.
     let commit_inputs =
@@ -148,7 +154,7 @@ fn snark_proof_verify<Tree: 'static + MerkleTreeTrait>(
         &srs_verifer_key,
         &prepared_verifying_key,
         &mut OsRng,
-        &commit_inputs,
+        &commit_inputs.as_slice(),
         &proof,
         &hashed_seeds_and_comm_rs,
         groth16::aggregate::AggregateVersion::V2,
