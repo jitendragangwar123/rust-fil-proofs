@@ -54,20 +54,6 @@ pub struct SectorUpdateProofInputs {
     pub comm_d_new: Commitment,
 }
 
-impl SectorUpdateProofInputs {
-    pub fn write_bytes(&self, dest: &mut [u8]) {
-        dest[0..32].copy_from_slice(&self.comm_r_old[..]);
-        dest[33..64].copy_from_slice(&self.comm_r_new[..]);
-        dest[65..96].copy_from_slice(&self.comm_d_new[..]);
-    }
-
-    pub fn update_commitment(&self, hasher: &mut Sha256) {
-        hasher.update(self.comm_r_old);
-        hasher.update(self.comm_r_new);
-        hasher.update(self.comm_d_new);
-    }
-}
-
 // Re-instantiate a t_aux with the new cache path, then use the tree_d
 // and tree_r_last configs from it.  This is done to preserve the
 // original tree configuration info (in particular, the
@@ -763,7 +749,9 @@ fn get_hashed_commitments(sector_update_inputs: &[SectorUpdateProofInputs]) -> [
     let hashed_commitments: [u8; 32] = {
         let mut hasher = Sha256::new();
         for input in sector_update_inputs.iter() {
-            input.update_commitment(&mut hasher);
+            hasher.update(input.comm_r_old);
+            hasher.update(input.comm_r_new);
+            hasher.update(input.comm_d_new);
         }
         hasher.finalize().into()
     };
@@ -800,15 +788,11 @@ pub fn aggregate_empty_sector_update_proofs<
 
     let config = SectorUpdateConfig::from_porep_config(porep_config);
     let partitions = usize::from(config.update_partitions);
-    let verifying_key = get_empty_sector_update_verifying_key::<Tree>(porep_config)?;
 
     let mut proofs: Vec<_> = proofs
         .iter()
         .try_fold(Vec::new(), |mut acc, proof| -> Result<_> {
-            acc.extend(
-                MultiProof::new_from_reader(Some(partitions), proof.0.as_slice(), &verifying_key)?
-                    .circuit_proofs,
-            );
+            acc.extend(groth16::Proof::read_many(proof.0.as_slice(), partitions)?);
 
             Ok(acc)
         })?;
