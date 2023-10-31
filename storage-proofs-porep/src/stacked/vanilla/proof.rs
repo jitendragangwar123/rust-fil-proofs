@@ -378,7 +378,7 @@ impl<'a, Tree: 'static + MerkleTreeTrait, G: 'static + Hasher> StackedDrg<'a, Tr
         layer_challenges: &LayerChallenges,
         t_aux: &TemporaryAuxCache<Tree, G>,
     ) -> Result<()> {
-        use crate::stacked::vanilla::SynthChallenges;
+        use crate::stacked::vanilla::challenges::synthetic::SynthChallenges;
 
         ensure!(
             pub_inputs.tau.is_some(),
