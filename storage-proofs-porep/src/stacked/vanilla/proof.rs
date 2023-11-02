@@ -110,11 +110,11 @@ impl<'a, Tree: 'static + MerkleTreeTrait, G: 'static + Hasher> StackedDrg<'a, Tr
 
         match challenges {
             Challenges::Interactive(interactive_challenges) => {
-                info!("generating non-synthetic vanilla proofs");
+                info!("generating interactive vanilla proofs");
 
                 let seed = pub_inputs
                     .seed
-                    .expect("seed must be set for non-synthetic vanilla proofs");
+                    .expect("seed must be set for interactive vanilla proofs");
 
                 (0..partition_count)
                     .map(|k| {
@@ -192,8 +192,32 @@ impl<'a, Tree: 'static + MerkleTreeTrait, G: 'static + Hasher> StackedDrg<'a, Tr
                     })
                 }
             }
-            Challenges::Ni(_ni_challenges) => {
-                todo!("vmx 2023-10-31: ni porep")
+            Challenges::Ni(ni_challenges) => {
+                info!("generating non-interactive vanilla proofs");
+
+                let comm_r = pub_inputs.tau.as_ref().expect("tau is set").comm_r;
+                (0..partition_count)
+                    .map(|k| {
+                        trace!("proving partition {}/{}", k + 1, partition_count);
+
+                        // Derive the set of challenges we are proving over.
+                        let challenge_positions = ni_challenges.derive(
+                            graph.size(),
+                            &pub_inputs.replica_id,
+                            &comm_r,
+                            k as u8,
+                        );
+
+                        Self::prove_layers_generate(
+                            graph,
+                            pub_inputs,
+                            p_aux.comm_c,
+                            t_aux,
+                            challenge_positions,
+                            num_layers,
+                        )
+                    })
+                    .collect::<Result<Vec<Vec<Proof<Tree, G>>>>>()
             }
         }
     }
