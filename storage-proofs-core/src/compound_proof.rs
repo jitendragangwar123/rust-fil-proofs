@@ -1,3 +1,5 @@
+use std::cmp;
+
 use anyhow::{ensure, Context};
 use bellperson::{
     groth16::{
@@ -274,7 +276,8 @@ where
         // Bellperson expects a vector of proofs, hence drain it from the list of proofs, so that
         // we don't need to keep an extra copy around.
         while !circuits.is_empty() {
-            let batch = circuits.drain(0..MAX_GROTH16_BATCH_SIZE).collect();
+            let size = cmp::min(MAX_GROTH16_BATCH_SIZE, circuits.len());
+            let batch = circuits.drain(0..size).collect();
             let proofs = create_random_proof_batch_fun(batch, groth_params, &mut rng)?;
             groth_proofs.extend_from_slice(&proofs);
         }
