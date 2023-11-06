@@ -584,8 +584,22 @@ pub fn seal_commit_phase2<Tree: 'static + MerkleTreeTrait>(
 
     let out = SealCommitOutput { proof: buf };
 
+    // The Non-interative PoRep gets aggregated.
+    let ret = if porep_config.feature_enabled(ApiFeature::NonInteractivePoRep) {
+        let aggregated = aggregate_seal_commit_proofs::<Tree>(
+            porep_config,
+            &[comm_r],
+            &[seed],
+            &[out],
+            groth16::aggregate::AggregateVersion::V2,
+        )?;
+        SealCommitOutput { proof: aggregated }
+    } else {
+        out
+    };
+
     info!("seal_commit_phase2:finish: {:?}", sector_id);
-    Ok(out)
+    Ok(ret)
 }
 
 /// Given the specified arguments, this method returns the inputs that were used to
