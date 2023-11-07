@@ -593,6 +593,25 @@ pub fn seal_commit_phase2<Tree: 'static + MerkleTreeTrait>(
             &[out],
             groth16::aggregate::AggregateVersion::V2,
         )?;
+        let inputs = get_seal_inputs::<Tree>(
+            porep_config,
+            comm_r,
+            comm_d,
+            prover_id,
+            sector_id,
+            ticket,
+            seed,
+        )?;
+        let is_valid = verify_aggregate_seal_commit_proofs::<Tree>(
+            porep_config,
+            aggregated.clone(),
+            &[comm_r],
+            &[seed],
+            inputs,
+            groth16::aggregate::AggregateVersion::V2,
+        )
+        .context("post-seal aggregation verification sanity check failed")?;
+        ensure!(is_valid, "post seal aggregation verifies");
         SealCommitOutput { proof: aggregated }
     } else {
         out
