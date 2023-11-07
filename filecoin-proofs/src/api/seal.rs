@@ -807,8 +807,8 @@ pub fn aggregate_seal_commit_proofs<Tree: 'static + MerkleTreeTrait>(
         !commit_outputs.is_empty(),
         "cannot aggregate with empty outputs"
     );
-
     let partitions = usize::from(porep_config.partitions);
+log::trace!("vmx: proofs: api: seal: aggregate_seal_commit_proof1");
     let verifying_key = get_stacked_verifying_key::<Tree>(porep_config)?;
     let mut proofs: Vec<_> =
         commit_outputs
@@ -825,6 +825,7 @@ pub fn aggregate_seal_commit_proofs<Tree: 'static + MerkleTreeTrait>(
 
                 Ok(acc)
             })?;
+log::trace!("vmx: proofs: api: seal: aggregate_seal_commit_proof2");
     trace!(
         "aggregate_seal_commit_proofs called with {} commit_outputs containing {} proofs",
         commit_outputs.len(),
