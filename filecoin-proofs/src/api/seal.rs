@@ -1002,6 +1002,28 @@ pub fn verify_seal<Tree: 'static + MerkleTreeTrait>(
 ) -> Result<bool> {
     info!("verify_seal:start: {:?}", sector_id);
 
+    // Non-interactive PoReps are aggregated, but it should be possible to use the usual PoRep
+    // APIs, hence branch out here and not one layer higher.
+    if porep_config.feature_enabled(ApiFeature::NonInteractivePoRep) {
+        let inputs = get_seal_inputs::<Tree>(
+            porep_config,
+            comm_r_in,
+            comm_d_in,
+            prover_id,
+            sector_id,
+            ticket,
+            seed,
+        )?;
+        return verify_aggregate_seal_commit_proofs::<Tree>(
+            porep_config,
+            proof_vec.to_vec(),
+            &[comm_r_in],
+            &[seed],
+            inputs,
+            groth16::aggregate::AggregateVersion::V2,
+        );
+    }
+
     ensure!(comm_d_in != [0; 32], "Invalid all zero commitment (comm_d)");
     ensure!(comm_r_in != [0; 32], "Invalid all zero commitment (comm_r)");
     ensure!(!proof_vec.is_empty(), "Invalid proof bytes (empty vector)");
