@@ -602,6 +602,7 @@ pub fn seal_commit_phase2<Tree: 'static + MerkleTreeTrait>(
             ticket,
             seed,
         )?;
+        log::trace!("vmx: seal: verification: inputs: porep config, aggregated proof, comm_r, seed, inputs: {:?} {:?} {:?} {:?} {:?}", porep_config, aggregated, comm_r, seed, inputs);
         let is_valid = verify_aggregate_seal_commit_proofs::<Tree>(
             porep_config,
             aggregated.clone(),
@@ -1014,6 +1015,7 @@ pub fn verify_seal<Tree: 'static + MerkleTreeTrait>(
             ticket,
             seed,
         )?;
+        log::trace!("vmx: verify seal: inputs: porep config, aggregated proof, comm_r, seed, inputs: {:?} {:?} {:?} {:?} {:?}", porep_config, proof_vec, comm_r_in, seed, inputs);
         return verify_aggregate_seal_commit_proofs::<Tree>(
             porep_config,
             proof_vec.to_vec(),
