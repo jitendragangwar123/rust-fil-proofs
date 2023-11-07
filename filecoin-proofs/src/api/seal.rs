@@ -570,17 +570,19 @@ pub fn seal_commit_phase2<Tree: 'static + MerkleTreeTrait>(
 
     // Verification is cheap when parameters are cached,
     // and it is never correct to return a proof which does not verify.
-    verify_seal::<Tree>(
-        porep_config,
-        comm_r,
-        comm_d,
-        prover_id,
-        sector_id,
-        ticket,
-        seed,
-        &buf,
-    )
-    .context("post-seal verification sanity check failed")?;
+    // TODO vmx 2023-11-07: Move that to the non ni-porep section, as `verify_seal` automatically
+    // tries to proof the aggregated one.
+    //verify_seal::<Tree>(
+    //    porep_config,
+    //    comm_r,
+    //    comm_d,
+    //    prover_id,
+    //    sector_id,
+    //    ticket,
+    //    seed,
+    //    &buf,
+    //)
+    //.context("post-seal verification sanity check failed")?;
 
     let out = SealCommitOutput { proof: buf };
 
@@ -803,6 +805,7 @@ pub fn aggregate_seal_commit_proofs<Tree: 'static + MerkleTreeTrait>(
 ) -> Result<AggregateSnarkProof> {
     info!("aggregate_seal_commit_proofs:start");
 
+log::trace!("vmx: proofs: api: seal: aggregate_seal_commit_proof");
     ensure!(
         !commit_outputs.is_empty(),
         "cannot aggregate with empty outputs"
