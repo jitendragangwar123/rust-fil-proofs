@@ -586,6 +586,7 @@ pub fn seal_commit_phase2<Tree: 'static + MerkleTreeTrait>(
 
     // The Non-interative PoRep gets aggregated.
     let ret = if porep_config.feature_enabled(ApiFeature::NonInteractivePoRep) {
+        log::trace!("vmx: seal: seal commit phase two: ni porep");
         let aggregated = aggregate_seal_commit_proofs::<Tree>(
             porep_config,
             &[comm_r],
@@ -615,6 +616,7 @@ pub fn seal_commit_phase2<Tree: 'static + MerkleTreeTrait>(
         ensure!(is_valid, "post seal aggregation verifies");
         SealCommitOutput { proof: aggregated }
     } else {
+        log::trace!("vmx: seal: seal commit phase two: *not* ni porep");
         out
     };
 
