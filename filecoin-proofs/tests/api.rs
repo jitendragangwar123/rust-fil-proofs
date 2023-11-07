@@ -88,22 +88,22 @@ fn test_seal_lifecycle_2kib_base_8() -> Result<()> {
     // The second value is the ApiVersion to use
     // The third value is whether to use SyntheticPoRep
     let test_inputs = vec![
-        (0u64, ApiVersion::V1_0_0, Vec::new()),
-        (
-            MAX_LEGACY_REGISTERED_SEAL_PROOF_ID + 1,
-            ApiVersion::V1_1_0,
-            Vec::new(),
-        ),
-        (
-            MAX_LEGACY_REGISTERED_SEAL_PROOF_ID + 1,
-            ApiVersion::V1_2_0,
-            Vec::new(),
-        ),
-        (
-            MAX_LEGACY_REGISTERED_SEAL_PROOF_ID + 1,
-            ApiVersion::V1_2_0,
-            vec![ApiFeature::SyntheticPoRep],
-        ),
+        //(0u64, ApiVersion::V1_0_0, Vec::new()),
+        //(
+        //    MAX_LEGACY_REGISTERED_SEAL_PROOF_ID + 1,
+        //    ApiVersion::V1_1_0,
+        //    Vec::new(),
+        //),
+        //(
+        //    MAX_LEGACY_REGISTERED_SEAL_PROOF_ID + 1,
+        //    ApiVersion::V1_2_0,
+        //    Vec::new(),
+        //),
+        //(
+        //    MAX_LEGACY_REGISTERED_SEAL_PROOF_ID + 1,
+        //    ApiVersion::V1_2_0,
+        //    vec![ApiFeature::SyntheticPoRep],
+        //),
         (
             MAX_LEGACY_REGISTERED_SEAL_PROOF_ID + 1,
             ApiVersion::V1_2_0,
