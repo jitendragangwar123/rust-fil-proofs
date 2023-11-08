@@ -76,3 +76,7 @@ harness = false
 [[bench]]
 name = "parents"
 harness = false
+
+[[bench]]
+name = "challenges_gen"
+harness = false
