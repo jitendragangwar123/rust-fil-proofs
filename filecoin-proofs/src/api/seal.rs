@@ -577,7 +577,7 @@ pub fn seal_commit_phase2<Tree: 'static + MerkleTreeTrait>(
             porep_config,
             &[comm_r],
             &[seed],
-            &[SealCommitOutput{ proof: buf }],
+            &[SealCommitOutput { proof: buf }],
             groth16::aggregate::AggregateVersion::V2,
         )?;
         let inputs = get_seal_inputs::<Tree>(
