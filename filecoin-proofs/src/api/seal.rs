@@ -802,7 +802,7 @@ pub fn aggregate_seal_commit_proofs<Tree: 'static + MerkleTreeTrait>(
 ) -> Result<AggregateSnarkProof> {
     info!("aggregate_seal_commit_proofs:start");
 
-log::trace!("vmx: proofs: api: seal: aggregate_seal_commit_proof");
+    log::trace!("vmx: proofs: api: seal: aggregate_seal_commit_proof");
     ensure!(
         !commit_outputs.is_empty(),
         "cannot aggregate with empty outputs"
