@@ -8,6 +8,7 @@ use log::trace;
 use num_bigint::BigUint;
 
 use filecoin_hashers::Domain;
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use sha2::{Digest, Sha256};
 
 #[inline]
@@ -149,6 +150,7 @@ impl NiChallenges {
             .chain_update(replica_id.into_bytes())
             .chain_update(comm_r);
         (0..self.challenges_per_partition)
+            .into_par_iter()
             .map(|i| {
                 let j: u32 = ((self.challenges_per_partition * k as usize) + i) as u32;
 
