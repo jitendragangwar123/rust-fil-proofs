@@ -1,4 +1,8 @@
 use blstrs::Scalar as Fr;
+    use chacha20::{
+        cipher::{KeyIvInit, StreamCipher, StreamCipherSeek},
+        ChaCha20,
+    };
 use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
 use ff::Field;
 use filecoin_hashers::{
@@ -6,12 +10,26 @@ use filecoin_hashers::{
     Domain, Hasher,
 };
 use fr32::fr_into_bytes;
+use num_bigint::BigUint;
 use rand::thread_rng;
 use storage_proofs_core::{api_version::ApiVersion, util::NODE_SIZE};
 use storage_proofs_porep::stacked::{
     create_label::single::{create_label, create_label_exp},
-    NiChallenges, StackedBucketGraph,
+    NiChallenges, NiChallengesChaCha, StackedBucketGraph,
 };
+
+
+//fn chacha20_gen(replica_id: &[u8; 32], comm_r: &[u8; 32]) -> ChaCha20 {
+//    let key = Blake2b::new()
+//        .hash_length(CHACHA20_KEY_SIZE)
+//        .key(b"filecoin.io|PoRep|1|NonInteractive|1")
+//        .to_state()
+//        .update(replica_id)
+//        .update(comm_r)
+//        .finalize();
+//    ChaCha20::new(key.as_bytes().into(), CHACHA20_NONCE.into())
+//}
+
 
 fn challenges_generation_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("challenges");
@@ -36,12 +54,21 @@ fn challenges_generation_benchmark(c: &mut Criterion) {
         })
     });
 
-    //group.bench_function("non-exp", |b| {
-    //    let mut data = data.clone();
-    //    let graph = &graph;
-    //
-    //    b.iter(|| black_box(create_label(graph, None, replica_id, &mut data, 1, 2)))
-    //});
+    group.bench_function("ni-chacha20", |b| {
+        let challenges = NiChallengesChaCha::new(18);
+        let sector_nodes = 32 * 1024 * 1024 * 1024 / NODE_SIZE;
+        let replica_id = [1u8; 32];
+        let comm_r = [2u8; 32];
+        let k = 126;
+        b.iter(|| {
+            black_box(challenges.derive::<Sha256Domain>(
+                sector_nodes,
+                &replica_id.into(),
+                &comm_r.into(),
+                k,
+            ))
+        })
+    });
 
     group.finish();
 }

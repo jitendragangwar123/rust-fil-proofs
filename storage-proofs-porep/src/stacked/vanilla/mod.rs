@@ -27,7 +27,7 @@ pub use challenges::{
     ChallengeRequirements, Challenges,
 };
 // TODO vmx 2023-11-08: only needed for benchmarks, put that export behind a feature flag.
-pub use challenges::NiChallenges;
+pub use challenges::{NiChallenges, NiChallengesChaCha};
 pub use clear_files::{clear_cache_dir, clear_synthetic_proofs};
 pub use column::Column;
 pub use column_proof::ColumnProof;

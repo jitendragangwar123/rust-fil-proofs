@@ -1,3 +1,8 @@
+    use blake2b_simd::Params as Blake2b;
+    use chacha20::{
+        cipher::{KeyIvInit, StreamCipher, StreamCipherSeek},
+        ChaCha20,
+    };
 use blstrs::Scalar as Fr;
 use log::trace;
 use num_bigint::BigUint;
@@ -150,6 +155,48 @@ impl NiChallenges {
                 let hash = hash_init.clone().chain_update(j.to_le_bytes()).finalize();
 
                 let bigint = BigUint::from_bytes_le(hash.as_ref());
+                bigint_to_challenge(bigint, sector_nodes)
+            })
+            .collect()
+    }
+}
+
+const CHACHA20_KEY_SIZE: usize = 32;
+const CHACHA20_NONCE: &[u8; 12] = b"ni-porep\x00\x00\x00\x00";
+const NI_CHALLENGE_SIZE: usize = 32;
+
+#[derive(Clone, Debug)]
+pub struct NiChallengesChaCha {
+    challenges_per_partition: usize,
+}
+
+impl NiChallengesChaCha {
+    pub const fn new(challenges_per_partition: usize) -> Self {
+        Self {
+            challenges_per_partition,
+        }
+    }
+
+    pub fn derive<D: Domain>(
+        &self,
+        sector_nodes: usize,
+        replica_id: &D,
+        comm_r: &D,
+        k: u8,
+    ) -> Vec<usize> {
+        let key = Blake2b::new()
+            .hash_length(CHACHA20_KEY_SIZE)
+            .key(b"filecoin.io|PoRep|1|NonInteractive|1")
+            .to_state()
+            .update(&replica_id.into_bytes())
+            .update(&comm_r.into_bytes())
+            .finalize();
+        let mut chacha20 = ChaCha20::new(key.as_bytes().into(), CHACHA20_NONCE.into());
+        (0..self.challenges_per_partition)
+            .map(|_| {
+                let mut rand_bytes = [0u8; NI_CHALLENGE_SIZE];
+                chacha20.apply_keystream(&mut rand_bytes);
+                let bigint = BigUint::from_bytes_le(&rand_bytes);
                 bigint_to_challenge(bigint, sector_nodes)
             })
             .collect()
