@@ -32,9 +32,6 @@ use storage_proofs_porep::stacked::{
 fn challenges_generation_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("challenges");
     group.sample_size(10);
-    //group.throughput(Throughput::Bytes(
-    //    /* replica id + 37 parents + node id */ 39 * 32,
-    //));
 
     group.bench_function("ni-sha256", |b| {
         let challenges = NiChallenges::new(18);

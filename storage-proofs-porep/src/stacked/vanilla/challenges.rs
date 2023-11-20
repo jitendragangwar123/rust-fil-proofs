@@ -124,13 +124,11 @@ impl SynthChallenges {
     }
 }
 
-#[cfg(not(feature = "ni-chacha"))]
 #[derive(Clone, Debug)]
 pub struct NiChallenges {
     challenges_per_partition: usize,
 }
 
-#[cfg(not(feature = "ni-chacha"))]
 impl NiChallenges {
     pub const fn new(challenges_per_partition: usize) -> Self {
         Self {
@@ -167,14 +165,12 @@ const CHACHA20_KEY_SIZE: usize = 32;
 const CHACHA20_NONCE: &[u8; 12] = b"ni-porep\x00\x00\x00\x00";
 const NI_CHALLENGE_SIZE: usize = 32;
 
-#[cfg(feature = "ni-chacha")]
 #[derive(Clone, Debug)]
-pub struct NiChallenges {
+pub struct NiChallengesChaCha {
     challenges_per_partition: usize,
 }
 
-#[cfg(feature = "ni-chacha")]
-impl NiChallenges {
+impl NiChallengesChaCha {
     pub const fn new(challenges_per_partition: usize) -> Self {
         Self {
             challenges_per_partition,
