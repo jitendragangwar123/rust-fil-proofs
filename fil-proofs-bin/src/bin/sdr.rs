@@ -1,4 +1,4 @@
-use std::{collections::HashSet, fmt, path::PathBuf};
+use std::{fmt, path::PathBuf};
 
 use anyhow::Result;
 use fil_proofs_bin::cli;
@@ -81,7 +81,7 @@ fn main() -> Result<()> {
         challenges: Challenges::new_interactive(0),
         num_layers: params.num_layers,
         api_version: ApiVersion::V1_2_0,
-        api_features: HashSet::new(),
+        api_features: Vec::new(),
     };
     let public_params = SdrStackedDrg::setup(&setup_params)?;
 

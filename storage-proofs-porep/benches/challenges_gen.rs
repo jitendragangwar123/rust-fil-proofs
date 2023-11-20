@@ -1,8 +1,8 @@
 use blstrs::Scalar as Fr;
-    use chacha20::{
-        cipher::{KeyIvInit, StreamCipher, StreamCipherSeek},
-        ChaCha20,
-    };
+use chacha20::{
+    cipher::{KeyIvInit, StreamCipher, StreamCipherSeek},
+    ChaCha20,
+};
 use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
 use ff::Field;
 use filecoin_hashers::{
@@ -18,7 +18,6 @@ use storage_proofs_porep::stacked::{
     NiChallenges, NiChallengesChaCha, StackedBucketGraph,
 };
 
-
 //fn chacha20_gen(replica_id: &[u8; 32], comm_r: &[u8; 32]) -> ChaCha20 {
 //    let key = Blake2b::new()
 //        .hash_length(CHACHA20_KEY_SIZE)
@@ -29,7 +28,6 @@ use storage_proofs_porep::stacked::{
 //        .finalize();
 //    ChaCha20::new(key.as_bytes().into(), CHACHA20_NONCE.into())
 //}
-
 
 fn challenges_generation_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("challenges");

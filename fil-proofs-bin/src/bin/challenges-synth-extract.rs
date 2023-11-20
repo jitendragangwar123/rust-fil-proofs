@@ -6,7 +6,7 @@ use log::info;
 use serde::{Deserialize, Serialize};
 use serde_hex::{SerHex, StrictPfx};
 use storage_proofs_core::util::NODE_SIZE;
-use storage_proofs_porep::stacked::SynthChallenges;
+use storage_proofs_porep::stacked::SynthChallengeGenerator;
 
 #[derive(Debug, Deserialize, Serialize)]
 struct ChallengesSynthExtractParameters {
@@ -39,7 +39,7 @@ fn main() -> Result<()> {
     let replica_id =
         Fr::from_repr_vartime(params.replica_id).context("must be valid field element")?;
     let comm_r = Fr::from_repr_vartime(params.comm_r).context("must be valid field element")?;
-    let challenges = SynthChallenges::default(sector_nodes, &replica_id, &comm_r)
+    let challenges = SynthChallengeGenerator::default(sector_nodes, &replica_id, &comm_r)
         .gen_partition_synth_indexes(params.num_challenges, &params.seed, 0);
 
     let output = ChallengesSynthExtractOutput { challenges };

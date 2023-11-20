@@ -1,9 +1,9 @@
-    use blake2b_simd::Params as Blake2b;
-    use chacha20::{
-        cipher::{KeyIvInit, StreamCipher, StreamCipherSeek},
-        ChaCha20,
-    };
+use blake2b_simd::Params as Blake2b;
 use blstrs::Scalar as Fr;
+use chacha20::{
+    cipher::{KeyIvInit, StreamCipher},
+    ChaCha20,
+};
 use log::trace;
 use num_bigint::BigUint;
 
@@ -182,7 +182,7 @@ impl NiChallengesChaCha {
         sector_nodes: usize,
         replica_id: &D,
         comm_r: &D,
-        k: u8,
+        _k: u8,
     ) -> Vec<usize> {
         let key = Blake2b::new()
             .hash_length(CHACHA20_KEY_SIZE)
@@ -292,6 +292,7 @@ pub(crate) mod synthetic {
         ChaCha20::new(key.as_bytes().into(), CHACHA20_NONCE.into())
     }
 
+    #[cfg_attr(feature = "tooling", visibility::make(pub))]
     pub(crate) struct SynthChallengeGenerator {
         sector_nodes: usize,
         replica_id: [u8; 32],

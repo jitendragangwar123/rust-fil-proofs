@@ -22,14 +22,15 @@ mod proof_scheme;
 #[cfg(feature = "multicore-sdr")]
 mod utils;
 
-#[cfg(feature = "tooling")]
-pub use challenges::{synthetic::DEFAULT_SYNTH_CHALLENGE_COUNT, InteractivePoRep, NiPoRep};
 pub use challenges::{
     synthetic::SYNTHETIC_POREP_VANILLA_PROOFS_EXT, synthetic::SYNTHETIC_POREP_VANILLA_PROOFS_KEY,
     ChallengeRequirements, Challenges,
 };
-// TODO vmx 2023-11-08: only needed for benchmarks, put that export behind a feature flag.
-pub use challenges::{NiChallenges, NiChallengesChaCha};
+#[cfg(feature = "tooling")]
+pub use challenges::{
+    synthetic::{SynthChallengeGenerator, DEFAULT_SYNTH_CHALLENGE_COUNT},
+    InteractiveChallenges, NiChallenges, NiChallengesChaCha,
+};
 pub use clear_files::{clear_cache_dir, clear_synthetic_proofs};
 pub use column::Column;
 pub use column_proof::ColumnProof;

@@ -5,7 +5,7 @@ use log::info;
 use serde::{Deserialize, Serialize};
 use serde_hex::{SerHex, StrictPfx};
 use storage_proofs_core::util::NODE_SIZE;
-use storage_proofs_porep::stacked::InteractivePoRep;
+use storage_proofs_porep::stacked::InteractiveChallenges;
 
 #[derive(Debug, Deserialize, Serialize)]
 struct ChallengesInteractiveParameters {
@@ -30,7 +30,7 @@ fn main() -> Result<()> {
     let params: ChallengesInteractiveParameters = cli::parse_stdin()?;
     info!("{:?}", params);
 
-    let challenges = InteractivePoRep::new(params.num_challenges_per_partition);
+    let challenges = InteractiveChallenges::new(params.num_challenges_per_partition);
     let sector_nodes = usize::try_from(params.sector_size)
         .expect("sector size must be smaller than the default integer size on this platform")
         / NODE_SIZE;

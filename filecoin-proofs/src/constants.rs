@@ -68,12 +68,23 @@ pub const fn get_porep_interactive_partitions(sector_size: u64) -> u8 {
     }
 }
 
+/// Returns the minimum number of challenges used for a certain sector size.
+#[cfg_attr(feature = "tooling", visibility::make(pub))]
+pub(crate) const fn get_porep_non_interactive_minimum_challenges(sector_size: u64) -> usize {
+    match sector_size {
+        SECTOR_SIZE_2_KIB | SECTOR_SIZE_4_KIB | SECTOR_SIZE_16_KIB | SECTOR_SIZE_32_KIB
+        | SECTOR_SIZE_8_MIB | SECTOR_SIZE_16_MIB | SECTOR_SIZE_512_MIB | SECTOR_SIZE_1_GIB => 4,
+        SECTOR_SIZE_32_GIB | SECTOR_SIZE_64_GIB => 2253,
+        _ => panic!("invalid sector size"),
+    }
+}
+
 /// Returns the number of partitions for non-interactive PoRep for a certain sector size.
 pub const fn get_porep_non_interactive_partitions(sector_size: u64) -> u8 {
     match sector_size {
         SECTOR_SIZE_2_KIB | SECTOR_SIZE_4_KIB | SECTOR_SIZE_16_KIB | SECTOR_SIZE_32_KIB
         | SECTOR_SIZE_8_MIB | SECTOR_SIZE_16_MIB | SECTOR_SIZE_512_MIB | SECTOR_SIZE_1_GIB => 2,
-        SECTOR_SIZE_32_GIB | SECTOR_SIZE_64_GIB => 79,
+        SECTOR_SIZE_32_GIB | SECTOR_SIZE_64_GIB => 126,
         _ => panic!("invalid sector size"),
     }
 }
@@ -163,18 +174,6 @@ lazy_static! {
         .copied()
         .collect()
     );
-}
-
-/// Returns the number of partitions for non-interactive PoRep for a certain sector size.
-pub const fn get_porep_non_interactive_partitions(sector_size: u64) -> u8 {
-    match sector_size {
-        // A single PoRep is used for the test sized sectors, so that the verifying key from the
-        // non-interacive PoRep can be used.
-        SECTOR_SIZE_2_KIB | SECTOR_SIZE_4_KIB | SECTOR_SIZE_16_KIB | SECTOR_SIZE_32_KIB
-        | SECTOR_SIZE_8_MIB | SECTOR_SIZE_16_MIB | SECTOR_SIZE_512_MIB | SECTOR_SIZE_1_GIB => 1,
-        SECTOR_SIZE_32_GIB | SECTOR_SIZE_64_GIB => 126,
-        _ => panic!("invalid sector size"),
-    }
 }
 
 /// The size of a single snark proof.

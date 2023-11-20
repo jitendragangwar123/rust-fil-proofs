@@ -6,7 +6,6 @@ use storage_proofs_post::fallback::{self, FallbackPoSt};
 use crate::{
     constants::{DefaultPieceHasher, DRG_DEGREE, EXP_DEGREE, LAYERS},
     types::{MerkleTreeTrait, PoRepConfig, PoStConfig},
-    POREP_MINIMUM_CHALLENGES,
 };
 
 type WinningPostSetupParams = fallback::SetupParams;
@@ -71,7 +70,7 @@ pub fn setup_params(porep_config: &PoRepConfig) -> Result<stacked::SetupParams> 
     let sector_bytes = porep_config.padded_bytes_amount();
     let challenges = select_challenges(
         usize::from(porep_config.partitions),
-        POREP_MINIMUM_CHALLENGES.from_sector_size(u64::from(sector_bytes)),
+        porep_config.minimum_challenges(),
         &porep_config.api_features,
     );
     let num_layers = *LAYERS

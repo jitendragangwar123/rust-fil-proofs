@@ -5,7 +5,7 @@ use log::info;
 use serde::{Deserialize, Serialize};
 use serde_hex::{SerHex, StrictPfx};
 use storage_proofs_core::util::NODE_SIZE;
-use storage_proofs_porep::stacked::NiPoRep;
+use storage_proofs_porep::stacked::NiChallenges;
 
 #[derive(Debug, Deserialize, Serialize)]
 struct ChallengesNiParameters {
@@ -30,7 +30,7 @@ fn main() -> Result<()> {
     let params: ChallengesNiParameters = cli::parse_stdin()?;
     info!("{:?}", params);
 
-    let challenges = NiPoRep::new(params.num_challenges_per_partition);
+    let challenges = NiChallenges::new(params.num_challenges_per_partition);
     let sector_nodes = usize::try_from(params.sector_size)
         .expect("sector size must be smaller than the default integer size on this platform")
         / NODE_SIZE;

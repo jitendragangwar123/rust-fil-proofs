@@ -1,4 +1,4 @@
-use std::{cmp, collections::HashSet, path::PathBuf};
+use std::{cmp, path::PathBuf};
 
 use anyhow::Result;
 use fil_proofs_bin::cli;
@@ -42,7 +42,7 @@ fn get_cache_params_path<Tree: 'static + MerkleTreeTrait>(
         // arbitrary value.
         porep_id: [1u8; 32],
         api_version: ApiVersion::V1_2_0,
-        api_features: HashSet::new(),
+        api_features: Vec::new(),
     };
     porep_config.get_cache_params_path::<Tree>()
 }

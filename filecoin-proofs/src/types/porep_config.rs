@@ -15,7 +15,6 @@ use crate::{
     constants::{self, DefaultPieceHasher},
     parameters::public_params,
     types::{PaddedBytesAmount, PoRepProofPartitions, SectorSize, UnpaddedBytesAmount},
-    POREP_PARTITIONS,
 };
 
 #[derive(Clone, Debug)]
@@ -60,13 +59,9 @@ impl PoRepConfig {
     pub fn new_groth16(sector_size: u64, porep_id: [u8; 32], api_version: ApiVersion) -> Self {
         Self {
             sector_size: SectorSize(sector_size),
-            partitions: PoRepProofPartitions(
-                *POREP_PARTITIONS
-                    .read()
-                    .expect("POREP_PARTITIONS poisoned")
-                    .get(&sector_size)
-                    .expect("unknown sector size"),
-            ),
+            partitions: PoRepProofPartitions(constants::get_porep_interactive_partitions(
+                sector_size,
+            )),
             porep_id,
             api_version,
             api_features: vec![],
@@ -89,11 +84,7 @@ impl PoRepConfig {
                 }
 
                 self.partitions = PoRepProofPartitions(
-                    *POREP_PARTITIONS
-                        .read()
-                        .expect("POREP_PARTITIONS poisoned")
-                        .get(&self.sector_size.into())
-                        .expect("unknown sector size"),
+                    constants::get_porep_interactive_partitions(self.sector_size.into()),
                 );
             }
             ApiFeature::NonInteractivePoRep => {
@@ -128,6 +119,14 @@ impl PoRepConfig {
     #[inline]
     pub fn unpadded_bytes_amount(&self) -> UnpaddedBytesAmount {
         self.padded_bytes_amount().into()
+    }
+
+    pub fn minimum_challenges(&self) -> usize {
+        if self.feature_enabled(ApiFeature::NonInteractivePoRep) {
+            constants::get_porep_non_interactive_minimum_challenges(u64::from(self.sector_size))
+        } else {
+            constants::get_porep_interactive_minimum_challenges(u64::from(self.sector_size))
+        }
     }
 
     /// Returns the cache identifier as used by `storage-proofs::parameter_cache`.
