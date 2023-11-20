@@ -18,17 +18,6 @@ use storage_proofs_porep::stacked::{
     NiChallenges, NiChallengesChaCha, StackedBucketGraph,
 };
 
-//fn chacha20_gen(replica_id: &[u8; 32], comm_r: &[u8; 32]) -> ChaCha20 {
-//    let key = Blake2b::new()
-//        .hash_length(CHACHA20_KEY_SIZE)
-//        .key(b"filecoin.io|PoRep|1|NonInteractive|1")
-//        .to_state()
-//        .update(replica_id)
-//        .update(comm_r)
-//        .finalize();
-//    ChaCha20::new(key.as_bytes().into(), CHACHA20_NONCE.into())
-//}
-
 fn challenges_generation_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("challenges");
     group.sample_size(10);
@@ -38,7 +27,7 @@ fn challenges_generation_benchmark(c: &mut Criterion) {
         let sector_nodes = 32 * 1024 * 1024 * 1024 / NODE_SIZE;
         let replica_id = [1u8; 32];
         let comm_r = [2u8; 32];
-        let k = 126;
+        let k = 80;
         b.iter(|| {
             black_box(challenges.derive::<Sha256Domain>(
                 sector_nodes,
@@ -54,7 +43,7 @@ fn challenges_generation_benchmark(c: &mut Criterion) {
         let sector_nodes = 32 * 1024 * 1024 * 1024 / NODE_SIZE;
         let replica_id = [1u8; 32];
         let comm_r = [2u8; 32];
-        let k = 126;
+        let k = 80;
         b.iter(|| {
             black_box(challenges.derive::<Sha256Domain>(
                 sector_nodes,

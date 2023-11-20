@@ -1,7 +1,7 @@
 use blake2b_simd::Params as Blake2b;
 use blstrs::Scalar as Fr;
 use chacha20::{
-    cipher::{KeyIvInit, StreamCipher},
+    cipher::{KeyIvInit, StreamCipher, StreamCipherSeek},
     ChaCha20,
 };
 use log::trace;
@@ -182,7 +182,7 @@ impl NiChallengesChaCha {
         sector_nodes: usize,
         replica_id: &D,
         comm_r: &D,
-        _k: u8,
+        k: u8,
     ) -> Vec<usize> {
         let key = Blake2b::new()
             .hash_length(CHACHA20_KEY_SIZE)
@@ -192,6 +192,9 @@ impl NiChallengesChaCha {
             .update(&comm_r.into_bytes())
             .finalize();
         let mut chacha20 = ChaCha20::new(key.as_bytes().into(), CHACHA20_NONCE.into());
+        chacha20
+            .try_seek(k as u32 * self.challenges_per_partition as u32)
+            .expect("seeking should not exceed keystream length");
         (0..self.challenges_per_partition)
             .map(|_| {
                 let mut rand_bytes = [0u8; NI_CHALLENGE_SIZE];
