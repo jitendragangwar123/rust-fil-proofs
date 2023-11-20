@@ -72,6 +72,8 @@ fixed-rows-to-discard = ["storage-proofs-core/fixed-rows-to-discard"]
 # This feature is for things like changing the visibility of functions/modules for tooling purpose.
 # This way functionality is accessible for those cases, while not being part of the public API.
 tooling = []
+# This is just a temporary feature to benchmark chacha vs. sha.
+ni-chacha = []
 
 [[bench]]
 name = "encode"

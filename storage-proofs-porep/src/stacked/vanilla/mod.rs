@@ -29,7 +29,7 @@ pub use challenges::{
 #[cfg(feature = "tooling")]
 pub use challenges::{
     synthetic::{SynthChallengeGenerator, DEFAULT_SYNTH_CHALLENGE_COUNT},
-    InteractiveChallenges, NiChallenges, NiChallengesChaCha,
+    InteractiveChallenges, NiChallenges,
 };
 pub use clear_files::{clear_cache_dir, clear_synthetic_proofs};
 pub use column::Column;

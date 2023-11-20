@@ -37,3 +37,5 @@ cuda = ["filecoin-proofs/cuda", "filecoin-hashers/cuda", "storage-proofs-core/cu
 multicore-sdr = ["filecoin-proofs/multicore-sdr", "storage-proofs-porep/multicore-sdr"]
 opencl = ["filecoin-proofs/opencl", "filecoin-hashers/opencl", "storage-proofs-core/opencl", "storage-proofs-porep/opencl"]
 cuda-supraseal = ["filecoin-proofs/cuda-supraseal", "storage-proofs-core/cuda-supraseal"]
+# This is just a temporary feature to benchmark chacha vs. sha.
+ni-chacha = ["storage-proofs-porep/ni-chacha"]
